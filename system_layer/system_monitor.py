@@ -1,6 +1,6 @@
 import psutil
 import time
-from voice import speak
+from voice_engine.voice import speak
 
 last_warning_time = 0
 

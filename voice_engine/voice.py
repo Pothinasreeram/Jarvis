@@ -38,12 +38,33 @@ microphone = sr.Microphone()
 def listen():
     with microphone as source:
         print("Listening...")
+
         recognizer.adjust_for_ambient_noise(source, duration=0.5)
-        audio = recognizer.listen(source)
+
+        try:
+            audio = recognizer.listen(
+                source,
+                timeout=5,
+                phrase_time_limit=8
+            )
+
+        except sr.WaitTimeoutError:
+            print("Listening timed out.")
+            return ""
 
     try:
         command = recognizer.recognize_google(audio)
         print("You said:", command)
         return command.lower()
-    except:
+
+    except sr.UnknownValueError:
+        print("Could not understand.")
+        return ""
+
+    except sr.RequestError as e:
+        print("Speech Recognition Error:", e)
+        return ""
+
+    except Exception as e:
+        print("Unexpected Error:", e)
         return ""

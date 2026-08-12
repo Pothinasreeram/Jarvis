@@ -1,9 +1,13 @@
 import ollama
 
-def ask_ai(prompt, memory):
+def ask_ai(prompt, memory=None):
+
+    if memory is None:
+        memory = {}
+
     try:
         name = memory.get("name", "User")
-
+        
         system_message = f"""
 You are Jarvis, an advanced AI assistant inspired by Iron Man.
 

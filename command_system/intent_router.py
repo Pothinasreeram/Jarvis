@@ -24,7 +24,12 @@ def route_intent(command, memory=None, context=None):
     browser_keywords = [
         "search", "google", "youtube"
     ]
-
+    
+    if "volume" in command:
+        return "system"
+    
+    if "increase" in command or "decrease" in command:
+        return "system"
     # Decide intent
     if any(word in command for word in system_keywords):
         return "system"

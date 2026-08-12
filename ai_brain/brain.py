@@ -1,7 +1,7 @@
 import datetime
 import webbrowser
-from ai_brain import ask_ai
-from internet_ai import search_internet
+from ai_brain.ai_brain import ask_ai
+from ai_brain.internet_ai import search_internet
 
 
 def process_command(command, memory, context):

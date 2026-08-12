@@ -3,7 +3,7 @@ import subprocess
 import pyautogui
 from vision import start_vision, stop_vision
 from task_planner import execute_task_plan
-from memory import remember, recall
+from memory_layer import remember, recall
 import threading
 
 def handle_automation(command):
@@ -75,7 +75,7 @@ def handle_automation(command):
         pyautogui.hotkey("win", "down")
         return "Minimizing window."
 
-    elif "maximize window" in command:
+    elif "maximize window" in command :
         pyautogui.hotkey("win", "up")
         return "Maximizing window."
 
@@ -83,7 +83,7 @@ def handle_automation(command):
         pyautogui.hotkey("win", "d")
         return "Showing desktop."
     
-    elif "optimize system" in command:
+    elif "optimize system" in command or "clean system" in command:
         os.system("cleanmgr")
         return "Opening system cleanup."
 

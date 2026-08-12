@@ -4,9 +4,9 @@ import subprocess
 from ctypes import cast, POINTER
 from comtypes import CLSCTX_ALL
 from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
-from memory import remember, recall
+from memory_layer.memory import remember, recall
 from program_finder import find_program
-from system_monitor import system_report
+from system_layer.system_monitor import system_report
 
 # ---- SMART APP DICTIONARY ----
 APP_PATHS = {
@@ -50,7 +50,11 @@ def control_volume(action):
     elif action == "mute":
         volume.SetMute(1, None)
         return "Volume muted."
-
+    
+    elif action == "unmute":
+        volume.SetMute(0, None)
+        return "Volume unmuted."
+    
     elif action == "max":
         volume.SetMasterVolumeLevelScalar(1.0, None)
         return "Volume set to maximum."
@@ -85,10 +89,13 @@ def handle_system_commands(command):
 
     elif "decrease" in command and "volume" in command:
         return control_volume("decrease")
+    
+    elif "unmute" in command and "volume" in command:
+        return control_volume("unmute")
 
     elif "mute" in command and "volume" in command:
         return control_volume("mute")
-
+    
     elif "max" in command and "volume" in command:
         return control_volume("max")
 

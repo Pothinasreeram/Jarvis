@@ -7,18 +7,32 @@ import numpy as np
 import os
 import psutil
 import time
-from internet_ai import ask_ai
-from voice import speak, listen, speaking_status
-from brain import process_command
-from memory import load_memory, save_memory
-from system_control import handle_system_commands
-from detect_math_expression import detect_math_expression, detect_time_date
-from intent_router import route_intent
-from automation import handle_automation
-from wake_word import listen_for_wake_word
-from browser_controller import handle_browser_commands
+from voice_engine.voice import (
+    speak,
+    speaking_status
+)
+from memory_layer.memory import load_memory
 from program_finder import build_program_database
-from system_monitor import system_watchdog
+from system_layer.system_monitor import system_watchdog
+from core.assistant import start_jarvis
+
+# ---------------- PERFORMANCE SETTINGS ----------------
+
+PERFORMANCE_MODE = True
+
+BRAIN_DELAY = 180 if PERFORMANCE_MODE else 120
+REACTOR_DELAY = 70 if PERFORMANCE_MODE else 40
+GLOBE_DELAY = 80 if PERFORMANCE_MODE else 40
+SPHERE_DELAY = 80 if PERFORMANCE_MODE else 40
+RADAR_DELAY = 60 if PERFORMANCE_MODE else 30
+WAVE_DELAY = 80 if PERFORMANCE_MODE else 50
+PARTICLE_DELAY = 500
+
+BRAIN_NODE_COUNT = 25
+GLOBE_PARTICLE_COUNT = 40 if PERFORMANCE_MODE else 80
+GLOBE_CONNECTION_COUNT = 20 if PERFORMANCE_MODE else 40
+SPHERE_PARTICLE_COUNT = 60 if PERFORMANCE_MODE else 120
+WAVE_PARTICLE_COUNT = 20 if PERFORMANCE_MODE else 40
 
 is_speaking = False
 if not os.path.exists("programs.json"):
@@ -55,7 +69,7 @@ brain_canvas.pack(pady=5)
 nodes = []
 connections = []
 
-for _ in range(25):
+for _ in range(BRAIN_NODE_COUNT):
 
     x = random.randint(50,450)
     y = random.randint(30,170)
@@ -110,7 +124,7 @@ def animate_brain():
 
         brain_canvas.itemconfig(node,fill=color)
 
-    app.after(120,animate_brain)
+    app.after(BRAIN_DELAY, animate_brain)
 
 animate_brain()
 # ---------------- HEADER ----------------
@@ -209,7 +223,7 @@ pulse = 0
 direction = 1
 # -------- CREATE HOLOGRAPHIC GLOBE --------
 
-for _ in range(80):
+for _ in range(GLOBE_PARTICLE_COUNT):
 
     theta = random.uniform(0, math.pi * 2)
     phi = random.uniform(0, math.pi)
@@ -228,7 +242,7 @@ for _ in range(80):
 
 
 # create network connections
-for _ in range(40):
+for _ in range(GLOBE_CONNECTION_COUNT):
 
     line = reactor_canvas.create_line(
         0,0,0,0,
@@ -299,14 +313,14 @@ def animate_reactor():
     reactor_canvas.coords(ring2,
                           45+offset,45+offset,
                           115-offset,115-offset)
-    app.after(40, animate_reactor)
+    app.after(REACTOR_DELAY, animate_reactor)
     
 
 # ---------------- HOLOGRAPHIC AI SPHERE ----------------
 
 sphere_particles = []
 
-for _ in range(120):
+for _ in range(SPHERE_PARTICLE_COUNT):
 
     theta = random.uniform(0, math.pi*2)
     phi = random.uniform(0, math.pi)
@@ -394,7 +408,7 @@ def animate_ai_sphere():
             px+size, py+size
         )
 
-    app.after(40, animate_ai_sphere)
+    app.after(SPHERE_DELAY, animate_ai_sphere)
 
 animate_ai_sphere()
 # ---------------- STATUS TEXT ----------------
@@ -502,7 +516,7 @@ def animate_radar():
         x, y
     )
 
-    app.after(30, animate_radar)
+    app.after(RADAR_DELAY, animate_radar)
 
 animate_radar()
 
@@ -566,7 +580,7 @@ def listen_microphone():
 
     while True:
         try:
-            if thinking_active:   # 🔥 Pause mic during speaking/processing
+            if thinking_active:
                 audio_level = 0
                 time.sleep(0.05)
                 continue
@@ -575,8 +589,10 @@ def listen_microphone():
             audio_data = np.frombuffer(data, dtype=np.int16)
             audio_level = np.abs(audio_data).mean()
 
+            time.sleep(0.02)
+
         except:
-            pass
+            time.sleep(0.05)
 
 
 # Run mic listener in background thread
@@ -599,6 +615,14 @@ for i in range(70):
 def animate_wave():
     global audio_level
 
+    if audio_level < 50:
+        for i, bar in enumerate(wave_bars):
+            x = wave_positions[i]
+            wave_canvas.coords(bar, x, 60, x, 60)
+
+        app.after(WAVE_DELAY, animate_wave)
+        return
+
     normalized = min(audio_level / 3000, 1.0)
 
     for i, bar in enumerate(wave_bars):
@@ -609,10 +633,7 @@ def animate_wave():
                            x, 60 - height,
                            x, 60 + height)
 
-    app.after(50, animate_wave)
-
-
-app.after(500, animate_wave)
+    app.after(WAVE_DELAY, animate_wave)
 
 # ---------------- PARTICLE EFFECT ----------------
 
@@ -620,7 +641,7 @@ app.after(500, animate_wave)
 
 particles = []
 
-for _ in range(40):
+for _ in range(WAVE_PARTICLE_COUNT):
     x = random.randint(0, 900)
     y = random.randint(0, 120)
     size = random.randint(2, 4)
@@ -659,8 +680,8 @@ def animate_particles():
         except Exception:
             pass
 
-    app.after(500, animate_particles)
-    app.after(500, animate_wave)
+    app.after(PARTICLE_DELAY, animate_particles)
+    app.after(WAVE_DELAY, animate_wave)
 
 
 
@@ -728,179 +749,6 @@ def update_system_stats():
     app.after(1000, update_system_stats)
 update_system_stats()
 
-def jarvis_loop():
-    global last_subject, pending_action, thinking_active
-
-    while True:
-        try:
-            set_status("yellow")
-
-            # wait for wake word once
-            if not listen_for_wake_word():
-                continue
-
-            # conversation mode stays active for 10 seconds
-            last_active_time = time.time()
-
-            while time.time() - last_active_time < 10:
-                command = listen()
-
-                if not command:
-                    continue
-
-                last_active_time = time.time()
-
-                # soft interrupt
-                if speaking_status() and WAKE_WORD in command.lower():
-                    print("Interrupt detected.")
-                    continue
-
-                command = command.lower()
-                clean_command = command.replace(WAKE_WORD, "").strip()
-
-                if not clean_command:
-                    continue
-
-                # -------- CONFIRMATION HANDLER --------
-                if pending_action:
-                    if clean_command in ["yes", "confirm", "do it"]:
-                        if pending_action == "shutdown":
-                            speak("Shutting down system.")
-                            os.system("shutdown /s /t 1")
-                        pending_action = None
-                        continue
-
-                    elif clean_command in ["no", "cancel"]:
-                        speak("Action cancelled.")
-                        pending_action = None
-                        continue
-
-                # PROCESSING
-                set_status("blue")
-                thinking_active = True
-                app.after(0, thinking_animation)
-
-                # AUTOMATION COMMANDS
-                automation_reply = handle_automation(clean_command)
-                if automation_reply:
-                    thinking_active = False
-                    set_status("green")
-                    app.after(0, update_display, automation_reply)
-                    speak(automation_reply)
-                    time.sleep(1.0)
-                    set_status("idle")
-                    continue
-
-                # -------- INTENT ROUTING --------
-                intent = route_intent(clean_command)
-
-                # SYSTEM
-                if intent == "system":
-                    if "shutdown" in clean_command:
-                        pending_action = "shutdown"
-                        reply = "Sir, are you sure you want to shut down the system?"
-                        thinking_active = False
-                        set_status("green")
-                        app.after(0, update_display, reply)
-                        speak(reply)
-                        time.sleep(1.0)
-                        set_status("idle")
-                        continue
-
-                    system_reply = handle_system_commands(clean_command)
-                    if system_reply:
-                        thinking_active = False
-                        set_status("green")
-                        app.after(0, update_display, system_reply)
-                        speak(system_reply)
-                        time.sleep(1.0)
-                        set_status("idle")
-                        continue
-
-                # MATH
-                elif intent == "math":
-                    math_reply = detect_math_expression(clean_command)
-                    if math_reply:
-                        thinking_active = False
-                        set_status("green")
-                        app.after(0, update_display, math_reply)
-                        speak(math_reply)
-                        time.sleep(1.0)
-                        set_status("idle")
-                        continue
-
-                # TIME
-                elif intent == "time":
-                    time_reply = detect_time_date(clean_command)
-                    if time_reply:
-                        thinking_active = False
-                        set_status("green")
-                        app.after(0, update_display, time_reply)
-                        speak(time_reply)
-                        time.sleep(1.0)
-                        set_status("idle")
-                        continue
-
-                # BROWSER
-                elif intent == "browser":
-                    browser_reply = handle_browser_commands(clean_command)
-                    if browser_reply:
-                        thinking_active = False
-                        set_status("green")
-                        app.after(0, update_display, browser_reply)
-                        speak(browser_reply)
-                        time.sleep(1.0)
-                        set_status("idle")
-                        continue
-
-                # ---- CONTEXT HANDLING START ----
-                words = clean_command.split()
-
-                if len(words) >= 2:
-                    if words[0] in ["who", "what"]:
-                        last_subject = " ".join(words[2:])
-                    elif words[0] in ["tell", "explain"]:
-                        last_subject = " ".join(words[3:])
-                    elif len(words) == 2:
-                        last_subject = clean_command
-
-                if last_subject:
-                    pronouns = [" he ", " she ", " him ", " her ", " they "]
-                    for pronoun in pronouns:
-                        if pronoun in f" {clean_command} ":
-                            clean_command = clean_command.replace(pronoun.strip(), last_subject)
-
-                # ---- CONTEXT HANDLING END ----
-
-                reply = process_command(clean_command, memory, conversation_context)
-
-                # AI fallback
-                if not reply or reply == "":
-                    reply = ask_ai(clean_command, memory)
-
-                thinking_active = False
-
-                if not reply:
-                    reply = "I am not sure how to respond to that."
-
-                save_memory(memory)
-
-                # SPEAKING
-                set_status("green")
-                app.after(0, update_display, reply)
-                speak(reply)
-                time.sleep(1.0)
-                set_status("idle")
-
-        except Exception as e:
-            print("Error:", e)
-            thinking_active = False
-            set_status("idle")
-
-def start_jarvis():
-
-    threading.Thread(target=jarvis_loop, daemon=True).start()
-    threading.Thread(target=system_watchdog, daemon=True).start()
 
 
 
@@ -922,19 +770,28 @@ def startup_sequence():
 
             # 🔥 Wait for speech to fully finish before next
             def continue_after_speech():
-                
+                while speaking_status():
+                    time.sleep(0.1)
+
                 run_sequence(index + 1)
 
             threading.Thread(target=continue_after_speech, daemon=True).start()
 
         else:
             set_status("red")
-            start_jarvis()
+            start_jarvis(
+                app,
+                set_status,
+                update_display,
+                thinking_animation
+          )
 
     set_status("green")
 
     run_sequence()
 
+animate_particles()
 app.after(1000, startup_sequence)
 
 app.mainloop()
+
