@@ -1,0 +1,49 @@
+# ========================================================
+# J.A.R.V.I.S. Core Dependencies & Required Libraries
+# ========================================================
+
+# GUI & HUD Interface
+customtkinter>=5.2.0
+pywebview>=6.0.0
+Pillow>=10.0.0
+
+# Voice Engine & Audio
+PyAudio>=0.2.14
+SpeechRecognition>=3.10.0
+edge-tts>=7.0.0
+pygame>=2.5.0
+pyttsx3>=2.90
+sounddevice>=0.4.6
+
+# Windows OS Automation & System Controls
+psutil>=5.9.0
+pycaw>=20240203
+screen-brightness-control>=0.23.0
+pywin32>=306
+comtypes>=1.2.0
+WMI>=1.5.1
+PyAutoGUI>=0.9.54
+PyGetWindow>=0.0.9
+pyperclip>=1.8.2
+
+# Vision & Camera (Gemma3, YOLOv8 & OpenCV)
+opencv-python>=4.8.0
+ultralytics>=8.0.0
+torch>=2.0.0
+torchvision>=0.15.0
+pytesseract>=0.3.10
+mss>=10.0.0
+
+
+# AI Intelligence & Web Search
+ollama>=0.1.6
+openai>=1.0.0
+ddgs>=9.0.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# Media & Music
+spotipy>=2.23.0
+
+# Numerical & Utility
+numpy>=1.24.0

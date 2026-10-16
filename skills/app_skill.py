@@ -1,3 +1,13 @@
+"""
+JARVIS Application & Game Launcher Skill
+Handles voice commands:
+- "open chrome"
+- "launch vs code"
+- "start calculator"
+- "run task manager"
+- "close discord"
+"""
+
 from system_layer.app_controller import open_app, close_app
 
 skill = {
@@ -5,25 +15,26 @@ skill = {
     "priority": 35
 }
 
-
-def can_handle(command):
-    command = command.lower()
-
-    return (
-        command.startswith("open ")
-        or command.startswith("close ")
-    )
+PREFIXES_OPEN = ("open ", "launch ", "start ", "run ")
+PREFIXES_CLOSE = ("close ", "kill ", "terminate ", "quit ", "exit ")
 
 
-def execute(command):
-    command = command.lower()
+def can_handle(command: str) -> bool:
+    cmd = command.lower().strip()
+    return any(cmd.startswith(p) for p in PREFIXES_OPEN + PREFIXES_CLOSE)
 
-    if command.startswith("open "):
-        app = command.replace("open ", "").strip()
-        return open_app(app)
 
-    if command.startswith("close "):
-        app = command.replace("close ", "").strip()
-        return close_app(app)
+def execute(command: str) -> str:
+    cmd = command.lower().strip()
 
-    return None
+    for p in PREFIXES_CLOSE:
+        if cmd.startswith(p):
+            target = cmd[len(p):].strip()
+            return close_app(target)
+
+    for p in PREFIXES_OPEN:
+        if cmd.startswith(p):
+            target = cmd[len(p):].strip()
+            return open_app(target)
+
+    return "Could not process application command, Sir."

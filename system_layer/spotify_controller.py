@@ -152,3 +152,83 @@ def repeat_off():
     sp.repeat("off")
 
     return "Repeat turned off."
+
+
+# ============================================================
+# LIVE HUD MEDIA CONTROLLER
+# ============================================================
+
+def get_current_track_info():
+    """
+    Get current playing track metadata from Spotify.
+    Returns: dict with 'playing', 'title', 'artist' or None.
+    """
+    try:
+        playback = sp.current_playback()
+        if playback and playback.get("item"):
+            item = playback["item"]
+            title = item.get("name", "Unknown Title")
+            artists = ", ".join(a["name"] for a in item.get("artists", []))
+            is_playing = bool(playback.get("is_playing", False))
+            return {
+                "playing": is_playing,
+                "title": title,
+                "artist": artists,
+                "progress_ms": playback.get("progress_ms", 0),
+                "duration_ms": item.get("duration_ms", 0)
+            }
+    except Exception:
+        pass
+    return None
+
+
+def toggle_play_pause():
+    """Toggle playback via Spotify API with Windows media key fallback."""
+    try:
+        playback = sp.current_playback()
+        if playback and playback.get("is_playing"):
+            sp.pause_playback()
+            return "Music paused."
+        elif playback:
+            sp.start_playback()
+            return "Resuming music."
+    except Exception:
+        pass
+
+    # Fallback to system media key
+    try:
+        import pyautogui
+        pyautogui.press("playpause")
+        return "Toggled media playback."
+    except Exception as e:
+        return f"Could not toggle playback: {e}"
+
+
+def media_next():
+    """Next track via Spotify API with Windows media key fallback."""
+    try:
+        sp.next_track()
+        return "Skipping to next track."
+    except Exception:
+        pass
+    try:
+        import pyautogui
+        pyautogui.press("nexttrack")
+        return "Next track."
+    except Exception as e:
+        return f"Could not skip track: {e}"
+
+
+def media_previous():
+    """Previous track via Spotify API with Windows media key fallback."""
+    try:
+        sp.previous_track()
+        return "Playing previous track."
+    except Exception:
+        pass
+    try:
+        import pyautogui
+        pyautogui.press("prevtrack")
+        return "Previous track."
+    except Exception as e:
+        return f"Could not play previous track: {e}"

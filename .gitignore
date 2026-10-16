@@ -361,3 +361,28 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Environment secrets
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Local SQLite Databases & WAL
+jarvis_memory.db
+jarvis_memory.db-shm
+jarvis_memory.db-wal
+
+# User Biometric Voiceprints
+assets/security/*.npy
+assets/security/*.json
+
+# Backup & Scratch Files
+*.backup
+*.before-merge
+*_backup.py
+*_backup_v*.py
+skills/*_backup.py
+system_layer/*_backup.py

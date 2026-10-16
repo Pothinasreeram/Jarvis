@@ -7,14 +7,12 @@ skill = {
 
 
 def can_handle(command):
-
-    command = command.lower()
-
+    command = command.lower().strip()
     return (
-        command.startswith("open ")
-        or command.startswith("search ")
-        or command.startswith("google ")
+        command.startswith("google ")
+        or command.startswith("search google ")
         or "youtube" in command
+        or (command.startswith("open ") and any(s in command for s in ["google", "youtube", "github", "reddit", "wikipedia", "amazon", "gmail", "chatgpt", "website"]))
     )
 
 

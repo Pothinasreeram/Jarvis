@@ -11,6 +11,8 @@ from system_layer.spotify_controller import (
     repeat_track,
     repeat_playlist,
     repeat_off,
+    get_current_track_info,
+    toggle_play_pause
 )
 
 skill = {
@@ -33,7 +35,11 @@ def can_handle(command):
         "repeat",
         "liked songs",
         "playlist",
-        "music"
+        "music",
+        "what song",
+        "what is playing",
+        "current song",
+        "current track"
     ]
 
     return any(word in command for word in keywords)
@@ -41,6 +47,14 @@ def can_handle(command):
 
 def execute(command):
     command = command.lower()
+
+    # Query current song
+    if any(q in command for q in ["what song", "what is playing", "current song", "current track"]):
+        info = get_current_track_info()
+        if info and info.get("title"):
+            state_str = "Playing" if info.get("playing") else "Paused"
+            return f"Currently on Spotify: {info['title']} by {info['artist']} ({state_str}), Sir."
+        return "No track is currently playing on Spotify, Sir."
 
     # Pause
     if "pause" in command:

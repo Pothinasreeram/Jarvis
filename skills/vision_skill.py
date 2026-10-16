@@ -22,9 +22,23 @@ def can_handle(command):
         "read my screen",
         "read screen",
         "take screenshot",
+        "screenshot",
+        "capture screen",
         "describe my screen",
-        "describe screen"
+        "describe screen",
+        "look at my screen",
+        "look at the screen",
+        "what's on my screen",
+        "what is on my screen",
+        "scan my screen",
+        "scan screen",
+        "see my screen",
+        "analyze my screen",
+        "analyze screen"
     ]
+
+    if any(keyword in command for keyword in keywords):
+        return True
 
     if "error" in command:
         return True
@@ -41,7 +55,7 @@ def can_handle(command):
     if "summarize" in command or "summarise" in command:
         return True
 
-    if "fix this code" in command:
+    if "fix this code" in command or "fix code" in command:
         return True
 
     if "comment" in command:
@@ -50,39 +64,36 @@ def can_handle(command):
     if "documentation" in command or "document" in command:
         return True
 
-    return any(keyword in command for keyword in keywords)
+    return False
 
 def execute(command):
     command = command.lower()
 
-    if "describe" in command:
-        return describe_screen()
-
-    if "screenshot" in command:
+    if "screenshot" in command or "capture screen" in command:
         return take_screenshot()
+
+    if any(k in command for k in ["describe", "look at", "what is on", "what's on", "scan", "see", "analyze"]):
+        return describe_screen()
 
     if "error" in command:
         return explain_error()
 
-    if "explain" in command :
-        return explain_code()
-
-    if "summarize" in command:
+    if "explain" in command or "summarize" in command:
         return explain_code()
 
     if "bug" in command:
         return find_bugs()
 
-    if "optimize" in command:
+    if "optimize" in command or "optimise" in command:
         return optimize_code()
 
-    if "fix this code" in command :
+    if "fix" in command:
         return fix_code()
 
-    if "add comment" in command:
+    if "comment" in command:
         return add_comments()
 
-    if "generate documentation" in command:
+    if "documentation" in command or "document" in command:
         return generate_documentation()
 
-    return read_screen()
+    return read_screen()
