@@ -211,9 +211,10 @@ pip install -r requirements.txt
 ```
 
 ### 2. Configure Environment Variables
-Create a `.env` file in the root directory (optional overrides):
+Create a `.env` file in the root directory (optional - weather works automatically out-of-the-box via Open-Meteo):
 ```env
-WEATHER_API_KEY=your_openweathermap_key_optional
+# Optional weather API key (Tomorrow.io or OpenWeather)
+TOMORROW_API_KEY=your_tomorrow_api_key_optional
 DEFAULT_CITY=Vadodara
 ```
 
