@@ -298,30 +298,29 @@ def normalize_speech_command(command):
     # SYMBOL PHRASES
     # --------------------------------------------------
 
-    replacements = {
-        " under score ": "_",
-        " dot ": ".",
-        " period ": ".",
-        " slash ": "/",
-        " backslash ": "\\",
-        " hyphen ": "-",
-        " dash ": "-",
-        " colon ": ":",
-        " semicolon ": ";",
-        " open parenthesis ": "(",
-        " close parenthesis ": ")",
-        " open bracket ": "[",
-        " close bracket ": "]",
-        " open brace ": "{",
-        " close brace ": "}",
-    }
+    import re
+    phrase_replacements = [
+        ("open parenthesis", "("),
+        ("close parenthesis", ")"),
+        ("open bracket", "["),
+        ("close bracket", "]"),
+        ("open brace", "{"),
+        ("close brace", "}"),
+        ("under score", "_"),
+        ("dot", "."),
+        ("period", "."),
+        ("backslash", "\\"),
+        ("slash", "/"),
+        ("hyphen", "-"),
+        ("dash", "-"),
+        ("semicolon", ";"),
+        ("colon", ":"),
+    ]
 
-    padded = f" {command} "
+    for spoken, symbol in phrase_replacements:
+        command = re.sub(r'\b' + re.escape(spoken) + r'\b', lambda m, s=symbol: s, command)
 
-    for spoken, symbol in replacements.items():
-        padded = padded.replace(spoken, symbol)
-
-    command = " ".join(padded.split()).strip()
+    command = " ".join(command.split()).strip()
 
 
     # --------------------------------------------------
@@ -378,10 +377,14 @@ def normalize_speech_command(command):
     command = command.replace(" ; ", ";")
     command = command.replace("( ", "(")
     command = command.replace(" )", ")")
+    command = command.replace("( )", "()")
+    command = command.replace(" (", "(")
     command = command.replace("[ ", "[")
     command = command.replace(" ]", "]")
+    command = command.replace("[ ]", "[]")
     command = command.replace("{ ", "{")
     command = command.replace(" }", "}")
+    command = command.replace("{ }", "{}")
 
     return " ".join(command.split()).strip()
 

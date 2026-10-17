@@ -22,6 +22,8 @@ TRIGGER_PREFIXES = [
     "write a script to ",
     "write a python script to ",
     "write python code to ",
+    "generate a script to ",
+    "generate a python script to ",
     "code a ",
     "code an ",
     "write a function to ",
