@@ -203,7 +203,7 @@ class ControlsPanel:
 
         self.gesture_btn = ctk.CTkButton(
             self.gesture_actions_row,
-            text="🖐 GESTURE CONTROL: OFF",
+            text="🖐 GESTURES: OFF",
             font=FONT_SMALL,
             fg_color="#0a1f33",
             hover_color="#123a5e",
@@ -213,7 +213,22 @@ class ControlsPanel:
             height=24,
             command=self._on_toggle_gestures
         )
-        self.gesture_btn.pack(fill="x")
+        self.gesture_btn.pack(side="left", fill="x", expand=True, padx=(0, 2))
+
+        self.gesture_cam_btn = ctk.CTkButton(
+            self.gesture_actions_row,
+            text="👁 HUD VIEW",
+            font=FONT_SMALL,
+            fg_color="#0a1f33",
+            hover_color="#123a5e",
+            border_color="#0088ff",
+            border_width=1,
+            text_color="#80d8ff",
+            height=24,
+            width=90,
+            command=self._on_toggle_camera_hud
+        )
+        self.gesture_cam_btn.pack(side="right", padx=(2, 0))
 
     def _notify(self, text):
         if self.notif_cb:
@@ -335,16 +350,26 @@ class ControlsPanel:
             if gesture_controller.is_active():
                 msg = gesture_controller.stop()
                 self.gesture_btn.configure(
-                    text="🖐 GESTURE CONTROL: OFF",
+                    text="🖐 GESTURES: OFF",
+                    fg_color="#0a1f33",
+                    border_color="#0088ff",
+                    text_color="#80d8ff"
+                )
+                self.gesture_cam_btn.configure(
                     fg_color="#0a1f33",
                     border_color="#0088ff",
                     text_color="#80d8ff"
                 )
                 self._notify(msg)
             else:
-                msg = gesture_controller.start(notif_callback=self._notify)
+                msg = gesture_controller.start(notif_callback=self._notify, show_preview=True)
                 self.gesture_btn.configure(
-                    text="🖐 GESTURE CONTROL: ON",
+                    text="🖐 GESTURES: ON",
+                    fg_color="#063828",
+                    border_color="#00ff88",
+                    text_color="#00ff88"
+                )
+                self.gesture_cam_btn.configure(
                     fg_color="#063828",
                     border_color="#00ff88",
                     text_color="#00ff88"
@@ -352,6 +377,22 @@ class ControlsPanel:
                 self._notify(msg)
         except Exception as e:
             self._notify(f"Gesture toggle error: {e}")
+
+    def _on_toggle_camera_hud(self):
+        try:
+            from system_layer.gesture_controller import gesture_controller
+            if not gesture_controller.is_active():
+                self._notify("Activate gestures first before toggling camera view.")
+                return
+            is_vis = gesture_controller.toggle_preview()
+            self.gesture_cam_btn.configure(
+                fg_color="#063828" if is_vis else "#0a1f33",
+                border_color="#00ff88" if is_vis else "#0088ff",
+                text_color="#00ff88" if is_vis else "#80d8ff"
+            )
+            self._notify(f"Gesture Camera HUD: {'Shown' if is_vis else 'Hidden'}")
+        except Exception as e:
+            self._notify(f"HUD View error: {e}")
 
     def sync_hardware(self):
         """Initial sync for volume and brightness sliders."""
