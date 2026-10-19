@@ -373,6 +373,7 @@ active_skills_list = [
     ("Weather", "Online"),
     ("Coding / Dev Copilot", "Online"),
     ("Vision / Camera", "Online"),
+    ("Hand Gesture Control", "Online"),
     ("Volume Control", "Online"),
     ("Brightness Control", "Online"),
     ("Task Planner", "Online"),

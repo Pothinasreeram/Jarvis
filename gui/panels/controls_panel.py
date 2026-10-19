@@ -197,6 +197,24 @@ class ControlsPanel:
         )
         self.briefing_btn.pack(side="right", fill="x", expand=True, padx=(2, 0))
 
+        # Hand Gesture Control Action Row
+        self.gesture_actions_row = ctk.CTkFrame(self.content, fg_color="transparent")
+        self.gesture_actions_row.pack(fill="x", pady=(4, 0))
+
+        self.gesture_btn = ctk.CTkButton(
+            self.gesture_actions_row,
+            text="🖐 GESTURE CONTROL: OFF",
+            font=FONT_SMALL,
+            fg_color="#0a1f33",
+            hover_color="#123a5e",
+            border_color="#0088ff",
+            border_width=1,
+            text_color="#80d8ff",
+            height=24,
+            command=self._on_toggle_gestures
+        )
+        self.gesture_btn.pack(fill="x")
+
     def _notify(self, text):
         if self.notif_cb:
             try:
@@ -310,6 +328,30 @@ class ControlsPanel:
             except Exception as e:
                 self._notify(f"Briefing Error: {e}")
         threading.Thread(target=worker, daemon=True).start()
+
+    def _on_toggle_gestures(self):
+        try:
+            from system_layer.gesture_controller import gesture_controller
+            if gesture_controller.is_active():
+                msg = gesture_controller.stop()
+                self.gesture_btn.configure(
+                    text="🖐 GESTURE CONTROL: OFF",
+                    fg_color="#0a1f33",
+                    border_color="#0088ff",
+                    text_color="#80d8ff"
+                )
+                self._notify(msg)
+            else:
+                msg = gesture_controller.start(notif_callback=self._notify)
+                self.gesture_btn.configure(
+                    text="🖐 GESTURE CONTROL: ON",
+                    fg_color="#063828",
+                    border_color="#00ff88",
+                    text_color="#00ff88"
+                )
+                self._notify(msg)
+        except Exception as e:
+            self._notify(f"Gesture toggle error: {e}")
 
     def sync_hardware(self):
         """Initial sync for volume and brightness sliders."""

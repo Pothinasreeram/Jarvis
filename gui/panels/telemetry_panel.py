@@ -109,7 +109,10 @@ class TelemetryPanel:
         self.sentry_badge_lbl.pack(fill="x", pady=(1, 1))
 
         self.wellness_badge_lbl = ctk.CTkLabel(self.content, text="WELLNESS: ACTIVE (0m | 0/8 💧)", font=FONT_SMALL, text_color=CYAN_BRIGHT)
-        self.wellness_badge_lbl.pack(fill="x", pady=(1, 2))
+        self.wellness_badge_lbl.pack(fill="x", pady=(1, 1))
+
+        self.gesture_badge_lbl = ctk.CTkLabel(self.content, text="GESTURES: STANDBY", font=FONT_SMALL, text_color=TEXT_MUTED)
+        self.gesture_badge_lbl.pack(fill="x", pady=(1, 2))
 
         self.last_net_bytes = [None, None, 0.0]
 
@@ -228,6 +231,17 @@ class TelemetryPanel:
                     self.wellness_badge_lbl.configure(text=f"WELLNESS: {w_sum.get('badge_text', 'ACTIVE')}", text_color=CYAN_BRIGHT)
                 else:
                     self.wellness_badge_lbl.configure(text="WELLNESS: STANDBY", text_color=TEXT_MUTED)
+            except Exception:
+                pass
+
+            # Gesture Recognition Badge
+            try:
+                from system_layer.gesture_controller import gesture_controller
+                if gesture_controller.is_active():
+                    last_g = gesture_controller.get_last_gesture()
+                    self.gesture_badge_lbl.configure(text=f"GESTURES: ACTIVE [{last_g}] 🖐", text_color=GREEN_ACCENT)
+                else:
+                    self.gesture_badge_lbl.configure(text="GESTURES: STANDBY", text_color=TEXT_MUTED)
             except Exception:
                 pass
 

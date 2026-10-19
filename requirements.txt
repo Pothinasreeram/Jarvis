@@ -26,8 +26,9 @@ PyAutoGUI>=0.9.54
 PyGetWindow>=0.0.9
 pyperclip>=1.8.2
 
-# Vision & Camera (Gemma3, YOLOv8 & OpenCV)
+# Vision & Camera (Gemma3, YOLOv8, MediaPipe & OpenCV)
 opencv-python>=4.8.0
+mediapipe>=1.1.0
 ultralytics>=8.0.0
 torch>=2.0.0
 torchvision>=0.15.0

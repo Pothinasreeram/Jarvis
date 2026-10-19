@@ -4,7 +4,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Local AI](https://img.shields.io/badge/Ollama-LLaMA_3.1:8B_%7C_Gemma_3-000000?style=for-the-badge&logo=ollama&logoColor=white)](https://ollama.ai/)
 [![GUI](https://img.shields.io/badge/CustomTkinter-Modular_Panels-00b4d8?style=for-the-badge)](https://github.com/TomSchimansky/CustomTkinter)
-[![Tests](https://img.shields.io/badge/Tests-13%20Passed%20%E2%9C%94-00ff66?style=for-the-badge)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-16%20Passed%20%E2%9C%94-00ff66?style=for-the-badge)](tests/)
 [![Platform](https://img.shields.io/badge/Platform-Windows_10_%2F_11-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://www.microsoft.com/)
 
 ---
@@ -79,8 +79,8 @@ To provide full transparency, features are categorized by current verification s
 | **Skill Router** | YouTube Search & Extraction | `✔ Stable` | Distinguishes YouTube search queries from Spotify music directives. |
 | **Environment** | Resilient Weather Controller | `✔ Stable` | Tomorrow.io $\rightarrow$ zero-key Open-Meteo fallback $\rightarrow$ cache. |
 | **Task Directives**| Stark Taskmaster | `✔ Stable` | SQLite-backed directive checklist with interactive `✔` buttons. |
-| **Voice Engine** | Speech Normalization & Symbol Mapping | `✔ Stable` | Regex word-boundary symbol translation with unit test coverage. |
 | **Developer Tools**| Coding Copilot (`coding_skill.py`) | `✔ Stable` | Synthesizes Python scripts and writes them to the Desktop. |
+| **Computer Vision**| Hand Gesture Control (`gesture_skill.py`) | `✔ Stable` | MediaPipe neural hand tracking: open palm interrupt, air pinch volume, victory briefing, thumbs up/down. |
 | **Local AI** | LLaMA 3.1:8b Local Chat & Reasoning | `⚡ Local Setup` | Requires local Ollama instance (`ollama pull llama3.1:8b`). |
 | **Computer Vision**| Gemma 3 Screen Analysis & Webcam Inspection | `⚡ Local Setup` | Requires Ollama vision model + local webcam device. |
 | **Biometrics** | Voiceprint Speaker Authentication | `⚡ Experimental` | MFCC acoustic extraction; calibrates to individual speaker timber. |
@@ -221,6 +221,7 @@ python -m unittest discover -s tests -p "test_*.py" -v
 | **Developer Copilot** | `"write python code to scrape a website"` | Generates production code with LLaMA and saves to Desktop. |
 | **YouTube Search** | `"search youtube for lo-fi beats"` | Extracts query and opens YouTube search results in browser. |
 | **Hardware Diagnostics** | `"system diagnostics"` / `"mark vii status"` | Complete hardware profile (CPU GHz, RAM, GPU, thermals, health index). |
+| **Hand Gestures** | `"activate gesture control"` / `"turn on gestures"` | Enables webcam neural hand tracking for air volume & speech interrupts. |
 | **Desk Sentinel** | `"activate sentry mode"` / `"lock workstation"` | Arms webcam face detection; auto-locks Windows when you walk away. |
 | **Voice Biometrics** | `"enroll voiceprint"` / `"verify voiceprint"` | Calibrates and authenticates your unique acoustic voice timbre. |
 | **Autonomous Research** | `"research <topic>"` | Synthesizes a 4-section executive brief & saves Markdown to Desktop. |
