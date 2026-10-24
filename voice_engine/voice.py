@@ -220,6 +220,11 @@ def speak(text):
 
     with speech_lock:
         is_speaking = True
+        try:
+            from voice_engine.audio_visualizer import set_speaking_state
+            set_speaking_state(True)
+        except Exception:
+            pass
         audio_played = False
         try:
             # 1. Direct Offline Mode
@@ -271,6 +276,11 @@ def speak(text):
                 _fallback_sapi_speak(speech_text)
         finally:
             is_speaking = False
+            try:
+                from voice_engine.audio_visualizer import set_speaking_state
+                set_speaking_state(False)
+            except Exception:
+                pass
             print("[TTS] Finished speaking. Microphone can resume.")
 
 

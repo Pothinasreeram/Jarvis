@@ -1,0 +1,61 @@
+{
+  "work": {
+    "name": "Work Protocol",
+    "description": "Developer workstation setup with VS Code, Chrome, volume 35%, and 45-minute focus session.",
+    "apps": ["code", "chrome"],
+    "snap": {
+      "code": "left",
+      "chrome": "right"
+    },
+    "volume": 35,
+    "brightness": 75,
+    "focus_minutes": 45,
+    "sound_fx": "complete"
+  },
+  "deep_focus": {
+    "name": "Deep Focus Protocol",
+    "description": "Distraction-free environment with 60-minute Focus Guard, subdued volume, and muted alerts.",
+    "apps": [],
+    "volume": 20,
+    "brightness": 50,
+    "focus_minutes": 60,
+    "sound_fx": "complete"
+  },
+  "night_coding": {
+    "name": "Night Coding Protocol",
+    "description": "Late night development mode with low display brightness (25%), quiet audio (25%), and VS Code.",
+    "apps": ["code"],
+    "snap": {
+      "code": "left"
+    },
+    "volume": 25,
+    "brightness": 25,
+    "focus_minutes": 30,
+    "sound_fx": "standby"
+  },
+  "meeting": {
+    "name": "Meeting Protocol",
+    "description": "Professional conferencing profile with 60% clear volume and desktop clutter minimization.",
+    "apps": [],
+    "volume": 60,
+    "brightness": 80,
+    "hide_desktop": false,
+    "sound_fx": "ack"
+  },
+  "clean_desk": {
+    "name": "Clean Desk Protocol",
+    "description": "Workstation optimization running Maid file deduplication and Windows PSAPI memory purge.",
+    "apps": [],
+    "maid_protocol": "both",
+    "ram_purge": true,
+    "sound_fx": "complete"
+  },
+  "stealth": {
+    "name": "Stealth Protocol",
+    "description": "Instant privacy lockdown hiding all desktop windows and engaging microphone privacy mute.",
+    "apps": [],
+    "privacy_mute": true,
+    "hide_desktop": true,
+    "sound_fx": "standby"
+  }
+}

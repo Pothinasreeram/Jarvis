@@ -347,6 +347,16 @@ class ReactorPanel:
             except Exception:
                 pass
 
+            try:
+                from voice_engine.audio_visualizer import get_visualizer_levels
+                live_rms, live_bands, bus_spk = get_visualizer_levels()
+                self.audio_level = live_rms
+                self.fft_spectrum_levels = live_bands
+                if bus_spk:
+                    is_spk = True
+            except Exception:
+                pass
+
             for i in range(NUM_WAVE_BARS):
                 target_h = self.fft_spectrum_levels[i]
 
@@ -360,7 +370,7 @@ class ReactorPanel:
                     self.current_display_heights[i] = max(self.current_display_heights[i] * 0.76, speech_h)
                 else:
                     self.current_display_heights[i] = max(2.0, self.current_display_heights[i] * 0.82)
-                    ambient_h = 2.5 + 3.0 * math.sin(time.time() * 2.8 + i * 0.35)
+                    ambient_h = target_h if target_h > 2.0 else (2.5 + 3.0 * math.sin(time.time() * 2.8 + i * 0.35))
                     self.current_display_heights[i] = max(self.current_display_heights[i], ambient_h)
 
                 h = int(self.current_display_heights[i])
@@ -373,32 +383,6 @@ class ReactorPanel:
         self.tk_root.after(35, self.animate_equalizer)
 
     def _start_mic_listener(self):
-        """Background thread analyzing microphone input via Fast Fourier Transform."""
-        def listener():
-            try:
-                p = pyaudio.PyAudio()
-                stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
-                while True:
-                    try:
-                        data = stream.read(CHUNK, exception_on_overflow=False)
-                        audio_data = np.frombuffer(data, dtype=np.int16)
-                        self.audio_level = float(np.abs(audio_data).mean())
+        """Unified visualizer bus integration (zero device contention)."""
+        pass
 
-                        windowed = audio_data * self.hanning_window
-                        fft_mag = np.abs(np.fft.rfft(windowed))
-
-                        raw_bands = np.zeros(NUM_WAVE_BARS)
-                        for i in range(NUM_WAVE_BARS):
-                            m = self.band_masks[i]
-                            if np.any(m):
-                                raw_bands[i] = np.mean(fft_mag[m])
-
-                        scaled_bands = np.log10(1.0 + raw_bands / 45.0)
-                        self.fft_spectrum_levels = np.clip(scaled_bands * 7.5, 0.0, 19.0)
-
-                    except Exception:
-                        time.sleep(0.02)
-            except Exception:
-                pass
-
-        threading.Thread(target=listener, daemon=True, name="FFTMicListener").start()

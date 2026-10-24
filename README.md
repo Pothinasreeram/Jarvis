@@ -4,7 +4,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Local AI](https://img.shields.io/badge/Ollama-LLaMA_3.1:8B_%7C_Gemma_3-000000?style=for-the-badge&logo=ollama&logoColor=white)](https://ollama.ai/)
 [![GUI](https://img.shields.io/badge/CustomTkinter-Modular_Panels-00b4d8?style=for-the-badge)](https://github.com/TomSchimansky/CustomTkinter)
-[![Tests](https://img.shields.io/badge/Tests-29%20Passed%20%E2%9C%94-00ff66?style=for-the-badge)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-39%20Passed%20%E2%9C%94-00ff66?style=for-the-badge)](tests/)
 [![Platform](https://img.shields.io/badge/Platform-Windows_10_%2F_11-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://www.microsoft.com/)
 
 ---
@@ -119,6 +119,8 @@ Jarvis/
 │   ├── command_splitter.py  # Multi-command conjunction splitter & verb inheritance
 │   ├── detect_math_expression.py # Word-to-operator arithmetic engine
 │   └── intent_router.py     # Intent classification (system, math, time, browser, ai)
+├── config/
+│   └── protocols.json       # Autonomous Protocol Studio workstation profiles
 ├── core/
 │   ├── assistant.py         # Main event loop, command worker & proactive services
 │   ├── lifecycle.py         # Graceful shutdown & hardware release coordinator
@@ -138,37 +140,41 @@ Jarvis/
 ├── memory_layer/
 │   ├── fact_extractor.py    # Structured memory extraction
 │   ├── memory.py            # JSON conversational persistence
-│   └── sqlite_memory.py     # SQLite structured relational storage
+│   └── sqlite_memory.py     # SQLite + FTS5 semantic memory & BM25 conversation search
 ├── skills/                  # 42 Modular Voice & Automation Skills
 │   ├── briefing_skill.py    # Tony Stark executive morning briefing
 │   ├── coding_skill.py      # Developer AI Copilot
 │   ├── diagnostics_skill.py # Mark VII hardware telemetry
 │   ├── gesture_skill.py     # Hand gesture control toggles & camera HUD
 │   ├── maid_skill.py        # Maid protocol deduplicator
+│   ├── protocol_skill.py    # Autonomous Protocol Studio dispatcher
 │   ├── research_skill.py    # Autonomous Deep Research agent
 │   ├── sentry_skill.py      # Desk Sentinel & Workstation Lock
 │   ├── system_info_skill.py # System telemetry & RAM purge
 │   ├── todo_skill.py        # Stark Taskmaster directives
 │   ├── youtube_skill.py     # YouTube search query extractor
-│   └── ...                  # 32+ additional system & media skills
+│   └── ...                  # 31+ additional system & media skills
 ├── system_layer/
 │   ├── briefing_controller.py   # Morning briefing compiler
 │   ├── diagnostics_controller.py# Hardware telemetry profiler
 │   ├── gesture_controller.py    # MediaPipe hand tracker & OpenCV viewfinder
 │   ├── maid_controller.py       # File deduplicator & organizer
+│   ├── protocol_controller.py   # Protocol Studio executor (work, deep focus, meeting)
 │   ├── system_control.py        # Operating system controls & Windows PSAPI purge
 │   ├── weather_controller.py    # Multi-tier resilient weather controller
 │   └── web_agent.py             # Live web intelligence scraper
-├── tests/                   # Automated Unit Test Suite (29 Passing Tests)
+├── tests/                   # Automated Unit Test Suite (39 Passing Tests)
 │   ├── test_all_commands.py # Verifies all 42 skills, intent router & command splitter
 │   ├── test_gesture_control.py # Tests pinch distance logic, state transitions & skills
 │   ├── test_lifecycle_logger.py# Tests shutdown hooks, logger severity & listeners
 │   ├── test_memory_purge.py # Tests Windows PSAPI working-set memory optimizer
 │   ├── test_modular_panels.py  # Tests decoupled CustomTkinter panel interfaces
 │   ├── test_skills.py       # Tests skill manager priority ordering & routing
+│   ├── test_upgrades_v2.py  # Tests FFT visualizer, Protocol Studio & FTS5 search
 │   ├── test_voice_normalization.py # Tests symbol mapping and speech filters
 │   └── test_weather.py      # Tests multi-tier zero-key weather fallback
 ├── voice_engine/
+│   ├── audio_visualizer.py  # Real-time microphone RMS & 36-band FFT visualizer bus
 │   ├── piper_engine.py      # Offline Piper TTS wrapper (Paul Bettany clone)
 │   ├── sound_effects.py     # Synthesized audio effects player
 │   └── voice.py             # Audio dispatch & speech routing

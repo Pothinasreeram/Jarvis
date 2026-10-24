@@ -897,6 +897,13 @@ def _process_queued_command(command):
 
                 thinking_active = False
 
+                if sentences_received:
+                    try:
+                        from memory_layer.sqlite_memory import log_conversation
+                        log_conversation(clean_command, " ".join(sentences_received), intent="ai_brain")
+                    except Exception:
+                        pass
+
                 if is_interrupted():
                     app.after(
                         0,
@@ -943,6 +950,12 @@ def _process_queued_command(command):
                     update_display,
                     reply
                 )
+
+                try:
+                    from memory_layer.sqlite_memory import log_conversation
+                    log_conversation(sub_cmd, reply, intent="skill")
+                except Exception:
+                    pass
 
                 set_jarvis_state("SPEAKING")
 

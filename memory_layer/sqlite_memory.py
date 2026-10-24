@@ -1,8 +1,8 @@
 """
-JARVIS Long-Term Semantic Memory Engine
+JARVIS Long-Term Semantic Memory & Conversation Engine
 Powered by SQLite3 + FTS5 Full-Text Indexing + BM25 Relevance Ranking.
 Provides sub-millisecond retrieval, persistent memory across restarts,
-and automatic context injection for AI inference.
+conversation archiving, and automatic context injection for AI inference.
 """
 
 import os
@@ -10,7 +10,7 @@ import json
 import sqlite3
 import re
 from datetime import datetime
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Any
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "jarvis_memory.db")
 LEGACY_MEMORY_JSON = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "memory.json")
@@ -29,7 +29,7 @@ def init_memory_db():
     with _get_connection() as conn:
         cursor = conn.cursor()
 
-        # Primary storage table
+        # 1. Primary facts storage table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS memories (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,7 +42,7 @@ def init_memory_db():
             );
         """)
 
-        # FTS5 Virtual table for ultra-fast full-text search with BM25 ranking
+        # 2. FTS5 Virtual table for ultra-fast full-text search with BM25 ranking
         cursor.execute("""
             CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(
                 key,
@@ -53,7 +53,7 @@ def init_memory_db():
             );
         """)
 
-        # Triggers to keep FTS5 synchronized with primary table
+        # Triggers to keep memories_fts synchronized
         cursor.execute("""
             CREATE TRIGGER IF NOT EXISTS trg_memories_ai AFTER INSERT ON memories BEGIN
                 INSERT INTO memories_fts(rowid, key, value, category, context)
@@ -72,6 +72,35 @@ def init_memory_db():
                 DELETE FROM memories_fts WHERE rowid = old.id;
                 INSERT INTO memories_fts(rowid, key, value, category, context)
                 VALUES (new.id, new.key, new.value, new.category, new.context);
+            END;
+        """)
+
+        # 3. Conversation history table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS conversations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_prompt TEXT NOT NULL,
+                assistant_response TEXT NOT NULL,
+                intent TEXT DEFAULT 'general',
+                created_at TEXT NOT NULL
+            );
+        """)
+
+        # 4. FTS5 Virtual table for conversation search with BM25 ranking
+        cursor.execute("""
+            CREATE VIRTUAL TABLE IF NOT EXISTS conversations_fts USING fts5(
+                user_prompt,
+                assistant_response,
+                intent,
+                tokenize = 'porter unicode61'
+            );
+        """)
+
+        # Trigger for conversations_fts
+        cursor.execute("""
+            CREATE TRIGGER IF NOT EXISTS trg_conversations_ai AFTER INSERT ON conversations BEGIN
+                INSERT INTO conversations_fts(rowid, user_prompt, assistant_response, intent)
+                VALUES (new.id, new.user_prompt, new.assistant_response, new.intent);
             END;
         """)
 
@@ -107,9 +136,7 @@ def _migrate_from_json():
 
 
 def store_fact(key: str, value: str, category: str = "user_fact", context: str = "") -> str:
-    """
-    Store or update a fact in long-term memory.
-    """
+    """Store or update a fact in long-term memory."""
     clean_key = key.strip().lower()
     clean_val = value.strip()
     if not clean_key or not clean_val:
@@ -167,18 +194,36 @@ def get_all_facts(category: Optional[str] = None) -> List[Dict[str, str]]:
         return [{"key": r[0], "value": r[1], "category": r[2], "updated_at": r[3]} for r in rows]
 
 
-def search_memory(query: str, limit: int = 5) -> List[Dict[str, str]]:
+def log_conversation(user_prompt: str, assistant_response: str, intent: str = "general"):
+    """Archive a user query and assistant response into searchable conversation memory."""
+    clean_prompt = str(user_prompt).strip()
+    clean_resp = str(assistant_response).strip()
+    if not clean_prompt or not clean_resp:
+        return
+
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    try:
+        with _get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO conversations (user_prompt, assistant_response, intent, created_at)
+                VALUES (?, ?, ?, ?);
+            """, (clean_prompt, clean_resp, intent, now))
+            conn.commit()
+    except Exception as e:
+        print(f"[CONVERSATION LOG ERROR]: {e}")
+
+
+def search_memory(query: str, limit: int = 5) -> List[Dict[str, Any]]:
     """
-    Perform sub-millisecond FTS5 search with BM25 relevance ranking.
-    Falls back to LIKE search if FTS syntax query yields empty.
+    Perform sub-millisecond FTS5 search with BM25 relevance ranking on facts.
     """
     clean_query = query.strip()
     if not clean_query:
         return []
 
-    # Clean words for FTS5 (remove punctuation, quote each word with wildcard)
     words = re.findall(r'\b[A-Za-z0-9_]+\b', clean_query)
-    # Filter common stop words for memory search
     stop_words = {"who", "what", "where", "when", "why", "how", "is", "are", "the", "a", "an", "do", "you", "my", "your", "tell", "me", "about"}
     filtered_words = [w for w in words if w.lower() not in stop_words]
 
@@ -189,11 +234,10 @@ def search_memory(query: str, limit: int = 5) -> List[Dict[str, str]]:
         return []
 
     fts_expression = " OR ".join(f"{w}*" for w in filtered_words)
-
     results = []
+
     with _get_connection() as conn:
         cursor = conn.cursor()
-
         try:
             cursor.execute("""
                 SELECT m.key, m.value, m.category, bm25(memories_fts) as rank
@@ -206,8 +250,7 @@ def search_memory(query: str, limit: int = 5) -> List[Dict[str, str]]:
             rows = cursor.fetchall()
             for r in rows:
                 results.append({"key": r[0], "value": r[1], "category": r[2], "score": r[3]})
-        except Exception as e:
-            # Fallback to standard LIKE search
+        except Exception:
             pass
 
         if not results:
@@ -223,6 +266,80 @@ def search_memory(query: str, limit: int = 5) -> List[Dict[str, str]]:
                         results.append({"key": r[0], "value": r[1], "category": r[2], "score": 0})
 
     return results[:limit]
+
+
+def search_conversations(query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    """
+    Search past conversations using FTS5 with BM25 ranking.
+    """
+    clean_query = query.strip()
+    if not clean_query:
+        return []
+
+    words = re.findall(r'\b[A-Za-z0-9_]+\b', clean_query)
+    stop_words = {"who", "what", "where", "when", "why", "how", "is", "are", "the", "a", "an", "do", "you", "my", "your", "tell", "me", "about"}
+    filtered = [w for w in words if w.lower() not in stop_words] or words
+    if not filtered:
+        return []
+
+    fts_expression = " OR ".join(f"{w}*" for w in filtered)
+    results = []
+
+    with _get_connection() as conn:
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                SELECT c.user_prompt, c.assistant_response, c.intent, c.created_at, bm25(conversations_fts) as rank
+                FROM conversations_fts f
+                JOIN conversations c ON f.rowid = c.id
+                WHERE conversations_fts MATCH ?
+                ORDER BY rank
+                LIMIT ?;
+            """, (fts_expression, limit))
+            for r in cursor.fetchall():
+                results.append({
+                    "user_prompt": r[0],
+                    "assistant_response": r[1],
+                    "intent": r[2],
+                    "timestamp": r[3],
+                    "score": r[4]
+                })
+        except Exception:
+            pass
+
+        if not results:
+            for w in filtered[:2]:
+                cursor.execute("""
+                    SELECT user_prompt, assistant_response, intent, created_at, 0 as rank
+                    FROM conversations
+                    WHERE user_prompt LIKE ? OR assistant_response LIKE ?
+                    ORDER BY id DESC
+                    LIMIT ?;
+                """, (f"%{w}%", f"%{w}%", limit))
+                for r in cursor.fetchall():
+                    if not any(res["user_prompt"] == r[0] for res in results):
+                        results.append({
+                            "user_prompt": r[0],
+                            "assistant_response": r[1],
+                            "intent": r[2],
+                            "timestamp": r[3],
+                            "score": 0
+                        })
+
+    return results[:limit]
+
+
+def search_all_memory(query: str, limit: int = 5) -> Dict[str, Any]:
+    """
+    Comprehensive semantic search across both persistent facts and conversation history.
+    """
+    facts = search_memory(query, limit=limit)
+    convos = search_conversations(query, limit=limit)
+    return {
+        "query": query,
+        "facts": facts,
+        "conversations": convos
+    }
 
 
 def get_memory_context_for_prompt(prompt: str) -> str:
@@ -259,13 +376,9 @@ def get_memory_context_for_prompt(prompt: str) -> str:
 
 def parse_memory_command(text: str) -> Optional[Tuple[str, str, str]]:
     """
-    Parse a voice command instructing Jarvis to remember something.
+    Parse a voice command instructing Jarvis to remember, search, summarize, or forget.
     Returns (action, key, value) or None.
-    e.g.
-      "remember that my dog's name is Max" -> ("remember", "dog's name", "Max")
-      "remember my email is test@example.com" -> ("remember", "email", "test@example.com")
-      "what do you remember about me" -> ("summary", "", "")
-      "forget my dog's name" -> ("forget", "dog's name", "")
+    Actions: 'remember', 'search', 'summary', 'forget'
     """
     cleaned = text.strip()
     lowered = cleaned.lower()
@@ -280,6 +393,21 @@ def parse_memory_command(text: str) -> Optional[Tuple[str, str, str]]:
         "show memory"
     ]):
         return ("summary", "", "")
+
+    # Search memory / conversation patterns
+    search_patterns = [
+        r"(?:jarvis\s+)?(?:search|find|query)\s+(?:in\s+)?(?:memory|history|conversation|conversations)\s+(?:for|about)?\s*(.+)",
+        r"(?:jarvis\s+)?what\s+do\s+you\s+(?:know|remember)\s+about\s+(.+)",
+        r"(?:jarvis\s+)?do\s+you\s+remember\s+(?:our\s+discussion\s+about\s+|our\s+conversation\s+about\s+|about\s+)?(.+)",
+        r"(?:jarvis\s+)?recall\s+(?:our\s+discussion\s+about\s+|our\s+conversation\s+about\s+|conversation\s+about\s+|discussion\s+about\s+|history\s+about\s+|about\s+)?(.+)",
+    ]
+    for p in search_patterns:
+        m = re.match(p, lowered)
+        if m:
+            query_term = m.group(1).replace("?", "").strip()
+            # If query term looks like a statement ("that my X is Y"), skip to remember
+            if not query_term.startswith("that ") and not " is " in query_term:
+                return ("search", query_term, "")
 
     # Forget fact
     forget_patterns = [

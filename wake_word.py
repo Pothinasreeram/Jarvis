@@ -182,6 +182,11 @@ def listen_for_wake_word(timeout=5.0):
                 continue
 
             audio_frame = np.frombuffer(data, dtype=np.int16)
+            try:
+                from voice_engine.audio_visualizer import push_audio_chunk
+                push_audio_chunk(audio_frame)
+            except Exception:
+                pass
             prediction = model.predict(audio_frame)
 
             for mdl, score in prediction.items():
