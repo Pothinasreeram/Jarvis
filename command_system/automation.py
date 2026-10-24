@@ -1,9 +1,27 @@
 import os
 import subprocess
 import pyautogui
-from vision import start_vision, stop_vision
+try:
+    from vision import start_vision, stop_vision
+except (ImportError, AttributeError):
+    def start_vision():
+        try:
+            from system_layer.camera_controller import handle_camera_commands
+            return handle_camera_commands("open camera")
+        except Exception:
+            return None
+
+    def stop_vision():
+        pass
 from task_planner import execute_task_plan
-from memory_layer import remember, recall
+try:
+    from memory_layer.memory import remember, recall
+except ImportError:
+    try:
+        from memory_layer import remember, recall
+    except ImportError:
+        def remember(k, v): return None
+        def recall(k): return None
 import threading
 
 def handle_automation(command):

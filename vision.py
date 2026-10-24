@@ -141,4 +141,20 @@ Keep your answer natural, direct, concise, and suitable for text-to-speech. Do n
         print("[VISION] Falling back to OCR text analysis...")
         ocr_text = read_screen_text()
         from ai_brain.ai_brain import ask_ai
-        return ask_ai(f"User asked: {prompt}. Here is the visible text on the screen: {ocr_text}")
+        return ask_ai(f"User asked: {prompt}. Here is the visible text on the screen: {ocr_text}")
+
+
+def start_vision():
+    """Starts camera/vision capture if requested."""
+    try:
+        from system_layer.camera_controller import handle_camera_commands
+        return handle_camera_commands("open camera")
+    except Exception as e:
+        print(f"[VISION ERROR]: {e}")
+        return None
+
+
+def stop_vision():
+    """Stops vision capture."""
+    pass
+

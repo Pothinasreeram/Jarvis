@@ -1,5 +1,4 @@
 from gui.gui import app
 
-app.mainloop()
-
-# Just running GUI
+if __name__ == "__main__":
+    app.mainloop()
