@@ -132,7 +132,7 @@ def parse_reminder_phrase(text: str) -> Optional[Dict]:
     """
     cleaned = text.strip().lower()
 
-    # Pattern: remind me in X (seconds|minutes|hours) (to|that|about) Y
+    # Pattern 1: remind me in X (seconds|minutes|hours) (to|that|about) Y
     match = re.search(
         r"remind\s+(?:me\s+)?in\s+(\d+(?:\.\d+)?)\s*(second|sec|minute|min|hour|hr)s?\s*(?:to|that|about)?\s*(.*)",
         cleaned
@@ -154,7 +154,29 @@ def parse_reminder_phrase(text: str) -> Optional[Dict]:
 
         return {"seconds": seconds, "message": message, "amount": amount, "unit": unit}
 
-    # Pattern: set a timer for X (seconds|minutes|hours)
+    # Pattern 2: remind me to Y in X (seconds|minutes|hours)
+    match2 = re.search(
+        r"remind\s+(?:me\s+)?(?:to|that|about)?\s*(.*?)\s+in\s+(\d+(?:\.\d+)?)\s*(second|sec|minute|min|hour|hr)s?$",
+        cleaned
+    )
+    if match2:
+        message = match2.group(1).strip()
+        amount = float(match2.group(2))
+        unit = match2.group(3)
+
+        multiplier = 1
+        if "min" in unit:
+            multiplier = 60
+        elif "hour" in unit or "hr" in unit:
+            multiplier = 3600
+
+        seconds = amount * multiplier
+        if not message:
+            message = "your scheduled reminder is due"
+
+        return {"seconds": seconds, "message": message, "amount": amount, "unit": unit}
+
+    # Pattern 3: set a timer for X (seconds|minutes|hours)
     timer_match = re.search(
         r"(?:set\s+a\s+)?timer\s+(?:for\s+)?(\d+(?:\.\d+)?)\s*(second|sec|minute|min|hour|hr)s?",
         cleaned

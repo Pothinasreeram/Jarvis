@@ -32,8 +32,21 @@ def evaluate_expression(expr):
     return _eval(node)
 
 def detect_math_expression(command):
-    # Normalize multiplication symbol
-    command = command.replace("x", "*")
+    command = command.lower()
+
+    # Normalize spoken words to math operators
+    replacements = [
+        ("multiplied by", "*"),
+        ("multiply by", "*"),
+        ("times", "*"),
+        ("divided by", "/"),
+        ("divide by", "/"),
+        ("plus", "+"),
+        ("minus", "-"),
+        ("x", "*"),
+    ]
+    for word, symbol in replacements:
+        command = command.replace(word, symbol)
 
     # Extract only math characters from sentence
     expression = re.findall(r"[\d\.\+\-\*/\(\)]+", command)
@@ -45,6 +58,8 @@ def detect_math_expression(command):
 
     try:
         result = evaluate_expression(expression)
+        if isinstance(result, float) and result.is_integer():
+            result = int(result)
         return f"The result is {result}"
     except:
         return None
