@@ -1,12 +1,58 @@
 import os
 import webbrowser
 import subprocess
+import gc
+import ctypes
 from ctypes import cast, POINTER
+import psutil
 from comtypes import CLSCTX_ALL
 from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 from memory_layer.memory import remember, recall
 from program_finder import find_program
 from system_layer.system_monitor import system_report
+
+def purge_system_ram():
+    """
+    Cleans up physical memory by invoking Python garbage collection
+    and trimming the working set of user-accessible processes via Windows PSAPI.
+    Returns dict with processes_trimmed, freed_mb, freed_gb, percent_after, used_gb, total_gb.
+    """
+    gc.collect()
+    mem_before = psutil.virtual_memory().used
+    count = 0
+
+    try:
+        cur_h = ctypes.windll.kernel32.GetCurrentProcess()
+        ctypes.windll.psapi.EmptyWorkingSet(cur_h)
+        count += 1
+    except Exception:
+        pass
+
+    for proc in psutil.process_iter(['pid']):
+        try:
+            pid = proc.info.get('pid')
+            if not pid or pid <= 4:
+                continue
+            h = ctypes.windll.kernel32.OpenProcess(0x0100 | 0x0400, False, pid)
+            if h:
+                ctypes.windll.psapi.EmptyWorkingSet(h)
+                ctypes.windll.kernel32.CloseHandle(h)
+                count += 1
+        except Exception:
+            pass
+
+    mem_info = psutil.virtual_memory()
+    freed_bytes = max(0, mem_before - mem_info.used)
+    freed_mb = freed_bytes / (1024 * 1024)
+
+    return {
+        "processes_trimmed": count,
+        "freed_mb": round(freed_mb, 1),
+        "freed_gb": round(freed_mb / 1024.0, 2),
+        "percent_after": round(mem_info.percent),
+        "used_gb": round(mem_info.used / (1024**3), 1),
+        "total_gb": round(mem_info.total / (1024**3), 1),
+    }
 
 # ---- SMART APP DICTIONARY ----
 APP_PATHS = {
@@ -74,9 +120,16 @@ def handle_system_commands(command):
 
     command = command.lower().strip()
 
-    # ----- SYSTEM STATUS -----
+    # ----- SYSTEM STATUS & RAM PURGE -----
     if "system status" in command or "system report" in command or "system performance" in command:
         return system_report()
+
+    elif any(k in command for k in ["purge ram", "clean ram", "optimize memory", "free ram", "clear memory", "free up ram"]):
+        res = purge_system_ram()
+        if res["freed_mb"] > 50:
+            return f"RAM purge complete. Trimmed {res['processes_trimmed']} processes, freeing {res['freed_mb']} megabytes. Memory utilization lowered to {res['percent_after']} percent."
+        else:
+            return f"RAM optimization completed across {res['processes_trimmed']} processes. Working sets trimmed. Memory utilization is {res['percent_after']} percent."
 
     # ---- LOCK SYSTEM ----
     elif "lock screen" in command:

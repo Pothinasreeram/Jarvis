@@ -8,6 +8,9 @@ import skills.youtube_skill as yt
 import skills.coding_skill as coding
 
 
+import skills.system_info_skill as sysinfo
+
+
 class TestSkillManager(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -35,6 +38,14 @@ class TestSkillManager(unittest.TestCase):
         self.assertTrue(coding.can_handle("write python code to scrape a website"))
         self.assertTrue(coding.can_handle("generate a script to sort files"))
         self.assertFalse(coding.can_handle("what is the weather today"))
+
+    def test_system_info_ram_purge(self):
+        """Ensure System Information skill recognizes RAM purge commands."""
+        self.assertTrue(sysinfo.can_handle("purge ram"))
+        self.assertTrue(sysinfo.can_handle("clean ram"))
+        self.assertTrue(sysinfo.can_handle("optimize memory"))
+        self.assertTrue(sysinfo.can_handle("free up ram"))
+        self.assertTrue(sysinfo.can_handle("system status"))
 
 
 if __name__ == "__main__":

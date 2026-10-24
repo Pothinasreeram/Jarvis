@@ -1,8 +1,9 @@
 import platform
 import psutil
+from system_layer.system_control import purge_system_ram
 
 # ============================================================
-# JARVIS SYSTEM INFORMATION SKILL — V7.4.1
+# JARVIS SYSTEM INFORMATION SKILL — V7.4.2
 # ============================================================
 
 skill = {
@@ -10,6 +11,15 @@ skill = {
     "priority": 25,
 }
 
+PURGE_KEYWORDS = [
+    "purge ram",
+    "clean ram",
+    "optimize memory",
+    "free ram",
+    "free up ram",
+    "clear memory",
+    "purge memory",
+]
 
 def can_handle(command):
     command = command.lower().strip()
@@ -30,12 +40,32 @@ def can_handle(command):
         "memory usage",
         "disk usage",
         "windows version",
-    ]
+    ] + PURGE_KEYWORDS
 
     return any(keyword in command for keyword in keywords)
 
 
 def execute(command):
+    command_lower = command.lower().strip()
+
+    if any(k in command_lower for k in PURGE_KEYWORDS):
+        try:
+            res = purge_system_ram()
+            if res["freed_mb"] > 50:
+                return (
+                    f"Memory purge complete. Trimmed working sets across {res['processes_trimmed']} processes, "
+                    f"freeing {res['freed_mb']} megabytes. Memory utilization is now {res['percent_after']} percent "
+                    f"({res['used_gb']} of {res['total_gb']} gigabytes)."
+                )
+            else:
+                return (
+                    f"Memory optimization finished across {res['processes_trimmed']} processes. "
+                    f"Active working sets trimmed. System memory load: {res['percent_after']} percent."
+                )
+        except Exception as e:
+            print("[RAM PURGE ERROR]", e)
+            return "Unable to complete memory purge."
+
     try:
         cpu = psutil.cpu_percent(interval=1)
 

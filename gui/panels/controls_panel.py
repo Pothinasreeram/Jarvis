@@ -4,6 +4,7 @@ Manages system volume, screen brightness, connectivity toggles, vision scans,
 and Stark telemetry/briefing trigger buttons.
 """
 
+import time
 import threading
 import customtkinter as ctk
 
@@ -32,10 +33,10 @@ class ControlsPanel:
         self.status_cb = status_callback
 
         self.panel = panel_factory(parent, "QUICK CONTROLS", icon="🎛")
-        self.panel.pack(fill="x", pady=(0, 8))
+        self.panel.pack(fill="x", pady=(0, 4))
 
         self.content = ctk.CTkFrame(self.panel, fg_color="transparent")
-        self.content.pack(fill="x", padx=12, pady=(4, 8))
+        self.content.pack(fill="x", padx=12, pady=(2, 4))
 
         # Volume Slider
         self.vol_frame = ctk.CTkFrame(self.content, fg_color="transparent")
@@ -134,7 +135,7 @@ class ControlsPanel:
 
         # Vision Actions Row
         self.vision_actions_row = ctk.CTkFrame(self.content, fg_color="transparent")
-        self.vision_actions_row.pack(fill="x", pady=(6, 0))
+        self.vision_actions_row.pack(fill="x", pady=(4, 0))
 
         self.scan_screen_btn = ctk.CTkButton(
             self.vision_actions_row,
@@ -165,13 +166,13 @@ class ControlsPanel:
         )
         self.screenshot_btn.pack(side="right", padx=(2, 0))
 
-        # Stark Telemetry & Briefing Actions Row
+        # Stark Telemetry, Briefing & RAM Purge Actions Row
         self.stark_actions_row = ctk.CTkFrame(self.content, fg_color="transparent")
         self.stark_actions_row.pack(fill="x", pady=(4, 0))
 
         self.diag_btn = ctk.CTkButton(
             self.stark_actions_row,
-            text="⚡ DIAGNOSTICS",
+            text="⚡ DIAG",
             font=FONT_SMALL,
             fg_color="#0d2644",
             hover_color="#184b80",
@@ -185,7 +186,7 @@ class ControlsPanel:
 
         self.briefing_btn = ctk.CTkButton(
             self.stark_actions_row,
-            text="🌅 BRIEFING",
+            text="🌅 BRIEF",
             font=FONT_SMALL,
             fg_color="#0d2644",
             hover_color="#184b80",
@@ -195,7 +196,21 @@ class ControlsPanel:
             height=24,
             command=self._on_briefing
         )
-        self.briefing_btn.pack(side="right", fill="x", expand=True, padx=(2, 0))
+        self.briefing_btn.pack(side="left", fill="x", expand=True, padx=2)
+
+        self.purge_btn = ctk.CTkButton(
+            self.stark_actions_row,
+            text="🧹 PURGE",
+            font=FONT_SMALL,
+            fg_color="#0d2644",
+            hover_color="#184b80",
+            border_color=CYAN_BRIGHT,
+            border_width=1,
+            text_color=CYAN_BRIGHT,
+            height=24,
+            command=self._on_purge_ram
+        )
+        self.purge_btn.pack(side="right", fill="x", expand=True, padx=(2, 0))
 
         # Hand Gesture Control Action Row
         self.gesture_actions_row = ctk.CTkFrame(self.content, fg_color="transparent")
@@ -342,6 +357,36 @@ class ControlsPanel:
                 speak(res)
             except Exception as e:
                 self._notify(f"Briefing Error: {e}")
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_purge_ram(self):
+        def worker():
+            try:
+                self.purge_btn.configure(text="CLEANING...", state="disabled")
+                from system_layer.system_control import purge_system_ram
+                res = purge_system_ram()
+                self._notify(f"RAM Purged: {res['freed_mb']}MB freed ({res['processes_trimmed']} procs).")
+                if self.display_cb:
+                    self.display_cb(
+                        f"Memory optimization complete: {res['freed_mb']} MB reclaimed across "
+                        f"{res['processes_trimmed']} processes. Current load: {res['percent_after']}%."
+                    )
+                self.purge_btn.configure(text="✓ PURGED", fg_color="#0d4422", border_color="#00ff88", text_color="#00ff88")
+                time.sleep(2.0)
+            except Exception as e:
+                self._notify(f"Purge error: {str(e)[:30]}")
+            finally:
+                try:
+                    self.purge_btn.configure(
+                        text="🧹 PURGE",
+                        fg_color="#0d2644",
+                        border_color=CYAN_BRIGHT,
+                        text_color=CYAN_BRIGHT,
+                        state="normal"
+                    )
+                except Exception:
+                    pass
+
         threading.Thread(target=worker, daemon=True).start()
 
     def _on_toggle_gestures(self):

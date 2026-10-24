@@ -4,6 +4,7 @@ Builds radial CPU & RAM gauges, network speedometer, battery bar, and status bad
 """
 
 import time
+import threading
 import psutil
 import tkinter as tk
 import customtkinter as ctk
@@ -19,12 +20,15 @@ FONT_SMALL = ("Consolas", 10)
 
 
 class TelemetryPanel:
-    def __init__(self, parent, panel_factory):
+    def __init__(self, parent, panel_factory, notif_callback=None, display_callback=None):
+        self.notif_cb = notif_callback
+        self.display_cb = display_callback
+
         self.panel = panel_factory(parent, "SYSTEM STATUS", icon="⚡")
-        self.panel.pack(fill="x", pady=(0, 8))
+        self.panel.pack(fill="x", pady=(0, 6))
 
         self.content = ctk.CTkFrame(self.panel, fg_color="transparent")
-        self.content.pack(fill="x", padx=12, pady=(4, 10))
+        self.content.pack(fill="x", padx=12, pady=(4, 8))
 
         # Canvas for CPU & RAM radial gauges
         self.width = 260
@@ -50,14 +54,33 @@ class TelemetryPanel:
         self.ram_arc = self.canvas.create_arc(163, 12, 227, 76, start=210, extent=-1, style="arc", width=5, outline=CYAN_BRIGHT)
         self.ram_text = self.canvas.create_text(195, 40, text="0%", fill=TEXT_WHITE, font=("Consolas", 11, "bold"))
 
-        # Detailed RAM readout
+        # Detailed RAM readout & One-Click Purge
+        self.ram_row = ctk.CTkFrame(self.content, fg_color="transparent")
+        self.ram_row.pack(fill="x", pady=(0, 2))
+
         self.ram_detail_lbl = ctk.CTkLabel(
-            self.content,
+            self.ram_row,
             text="MEM ALLOC: 0.0 / 0.0 GB",
             font=FONT_SMALL,
             text_color=TEXT_CYAN
         )
-        self.ram_detail_lbl.pack(fill="x", pady=(0, 2))
+        self.ram_detail_lbl.pack(side="left")
+
+        self.purge_btn = ctk.CTkButton(
+            self.ram_row,
+            text="⚡ PURGE",
+            font=("Consolas", 9, "bold"),
+            fg_color="#09283e",
+            hover_color="#006699",
+            border_color="#00b4d8",
+            border_width=1,
+            text_color=CYAN_BRIGHT,
+            height=20,
+            width=62,
+            corner_radius=4,
+            command=self._on_purge_click
+        )
+        self.purge_btn.pack(side="right")
 
         # Live Network Speedometer
         self.net_frame = ctk.CTkFrame(self.content, fg_color="transparent")
@@ -247,3 +270,35 @@ class TelemetryPanel:
 
         except Exception:
             pass
+
+    def _on_purge_click(self):
+        def worker():
+            try:
+                self.purge_btn.configure(text="CLEANING...", state="disabled")
+                from system_layer.system_control import purge_system_ram
+                res = purge_system_ram()
+                if self.notif_cb:
+                    self.notif_cb(f"RAM Purged: {res['freed_mb']}MB freed across {res['processes_trimmed']} procs.")
+                if self.display_cb:
+                    self.display_cb(
+                        f"Memory optimization complete: {res['freed_mb']} MB reclaimed across "
+                        f"{res['processes_trimmed']} processes. System RAM at {res['percent_after']}%."
+                    )
+                self.purge_btn.configure(text="✓ PURGED", fg_color="#0d4422", border_color="#00ff88", text_color="#00ff88")
+                time.sleep(2.0)
+            except Exception as e:
+                if self.notif_cb:
+                    self.notif_cb(f"Purge error: {str(e)[:30]}")
+            finally:
+                try:
+                    self.purge_btn.configure(
+                        text="⚡ PURGE",
+                        fg_color="#09283e",
+                        border_color="#00b4d8",
+                        text_color=CYAN_BRIGHT,
+                        state="normal"
+                    )
+                except Exception:
+                    pass
+
+        threading.Thread(target=worker, daemon=True).start()

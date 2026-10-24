@@ -177,10 +177,19 @@ btn_close.pack(side="left", padx=2)
 
 # Divider line
 header_divider = ctk.CTkFrame(root_frame, fg_color=PANEL_BORDER_DIM, height=1)
-header_divider.pack(fill="x", side="top", pady=(0, 8))
+header_divider.pack(fill="x", side="top", pady=(0, 6))
+
+# ------------------------------------------------------------
+# BOTTOM SECTION CONTAINER
+# Packed to side="bottom" BEFORE main_grid so Tkinter reserves
+# the bottom dock unconditionally and prevents any off-screen clipping.
+# ------------------------------------------------------------
+bottom_section = ctk.CTkFrame(root_frame, fg_color="transparent")
+bottom_section.pack(fill="x", side="bottom", pady=(4, 0))
 
 # ============================================================
 # 2. MAIN 3-COLUMN DASHBOARD GRID
+# Packed after bottom_section with expand=True to claim all remaining height
 # ============================================================
 
 main_grid = ctk.CTkFrame(root_frame, fg_color="transparent")
@@ -255,21 +264,18 @@ def add_notification(text):
 # 3. BOTTOM SECTION: TERMINAL CONSOLE & COMMAND INPUT DOCK
 # ------------------------------------------------------------
 
-bottom_section = ctk.CTkFrame(root_frame, fg_color="transparent")
-bottom_section.pack(fill="x", side="bottom", pady=(6, 0))
-
 terminal_panel = ctk.CTkFrame(
     bottom_section,
     fg_color=PANEL_BG,
     border_color=PANEL_BORDER,
     border_width=1,
     corner_radius=8,
-    height=100
+    height=75
 )
-terminal_panel.pack(fill="x", pady=(0, 6))
+terminal_panel.pack(fill="x", pady=(0, 4))
 
-term_header = ctk.CTkFrame(terminal_panel, fg_color="transparent", height=20)
-term_header.pack(fill="x", padx=10, pady=(4, 0))
+term_header = ctk.CTkFrame(terminal_panel, fg_color="transparent", height=18)
+term_header.pack(fill="x", padx=10, pady=(3, 0))
 
 term_lbl = ctk.CTkLabel(
     term_header,
@@ -281,13 +287,13 @@ term_lbl.pack(side="left")
 
 textbox = ctk.CTkTextbox(
     terminal_panel,
-    height=80,
+    height=55,
     font=FONT_CONSOLE,
     fg_color="transparent",
     text_color=CYAN_BRIGHT,
     border_width=0
 )
-textbox.pack(fill="both", expand=True, padx=10, pady=(2, 6))
+textbox.pack(fill="both", expand=True, padx=10, pady=(1, 4))
 textbox.insert("end", "J.A.R.V.I.S.: System online.\nJ.A.R.V.I.S.: Ready to assist you.\nJ.A.R.V.I.S.: What can I do for you today?\n")
 textbox.configure(state="disabled")
 
@@ -354,7 +360,12 @@ left_col = ctk.CTkFrame(main_grid, fg_color="transparent")
 left_col.grid(row=0, column=0, sticky="nsew", padx=(0, 6), pady=0)
 
 # PANEL 1: Telemetry Panel
-telemetry_panel = TelemetryPanel(left_col, create_hud_panel)
+telemetry_panel = TelemetryPanel(
+    left_col,
+    create_hud_panel,
+    notif_callback=add_notification,
+    display_callback=update_display
+)
 
 # PANEL 2: Active Skills Panel
 skills_panel = create_hud_panel(left_col, "ACTIVE SKILLS", icon="⚙")
@@ -426,7 +437,7 @@ for skill_name, status_text in active_skills_list:
 
 # Insert panels before the notification panel in right_col
 env_panel = EnvironmentPanel(right_col, create_hud_panel, city="Vadodara")
-env_panel.panel.pack(fill="x", pady=(0, 8), before=notif_panel)
+env_panel.panel.pack(fill="x", pady=(0, 4), before=notif_panel)
 
 controls_panel = ControlsPanel(
     right_col,
@@ -435,13 +446,13 @@ controls_panel = ControlsPanel(
     display_callback=update_display,
     status_callback=set_status
 )
-controls_panel.panel.pack(fill="x", pady=(0, 8), before=notif_panel)
+controls_panel.panel.pack(fill="x", pady=(0, 4), before=notif_panel)
 
 media_panel = MediaPanel(right_col, create_hud_panel, notif_callback=add_notification)
-media_panel.panel.pack(fill="x", pady=(0, 8), before=notif_panel)
+media_panel.panel.pack(fill="x", pady=(0, 4), before=notif_panel)
 
 todo_panel = TodoPanel(right_col, create_hud_panel, notif_callback=add_notification)
-todo_panel.panel.pack(fill="x", pady=(0, 8), before=notif_panel)
+todo_panel.panel.pack(fill="x", pady=(0, 4), before=notif_panel)
 
 # Command Input Dock Row (Bottom of HUD)
 dock_row = ctk.CTkFrame(bottom_section, fg_color="transparent")
