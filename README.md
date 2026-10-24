@@ -4,16 +4,16 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Local AI](https://img.shields.io/badge/Ollama-LLaMA_3.1:8B_%7C_Gemma_3-000000?style=for-the-badge&logo=ollama&logoColor=white)](https://ollama.ai/)
 [![GUI](https://img.shields.io/badge/CustomTkinter-Modular_Panels-00b4d8?style=for-the-badge)](https://github.com/TomSchimansky/CustomTkinter)
-[![Tests](https://img.shields.io/badge/Tests-16%20Passed%20%E2%9C%94-00ff66?style=for-the-badge)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-29%20Passed%20%E2%9C%94-00ff66?style=for-the-badge)](tests/)
 [![Platform](https://img.shields.io/badge/Platform-Windows_10_%2F_11-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://www.microsoft.com/)
 
 ---
 
 ## 🌌 Overview
 
-**J.A.R.V.I.S.** is an open-source, locally hosted autonomous AI desktop assistant inspired by Tony Stark's iconic system. Engineered with a **modular skill-based architecture**, J.A.R.V.I.S. integrates **local Large Language Models (LLaMA 3.1:8b)**, **multimodal screen & camera vision**, **acoustic speaker biometrics**, **computer vision desk security**, and a **hardware-accelerated sci-fi HUD** with decoupled panel components.
+**J.A.R.V.I.S.** is an open-source, locally hosted autonomous AI desktop assistant inspired by Tony Stark's iconic system. Engineered with a **modular 42-skill architecture**, J.A.R.V.I.S. integrates **local Large Language Models (LLaMA 3.1:8b)**, **MediaPipe neural hand tracking with live holographic viewfinder**, **Windows PSAPI memory optimization**, **acoustic speaker biometrics**, **computer vision desk security**, and a **hardware-accelerated sci-fi HUD** with decoupled panel components.
 
-Operating entirely offline for core tasks with zero cloud subscription lock-in, J.A.R.V.I.S. manages technical research synthesis, hardware thermal diagnostics, voice-authenticated workstation locks, media control, and daily executive morning briefings.
+Operating entirely offline for core tasks with zero cloud subscription lock-in, J.A.R.V.I.S. manages technical research synthesis, hardware thermal diagnostics, voice-authenticated workstation locks, media control, multi-command action chaining, and daily executive morning briefings.
 
 ---
 
@@ -21,14 +21,16 @@ Operating entirely offline for core tasks with zero cloud subscription lock-in, 
 
 ```mermaid
 graph TD
-    User([🎤 User Voice / ⌨️ HUD Console / 🖱️ Tray / Hotkey: Ctrl+Space]) --> AudioPipeline[Voice & Audio Pipeline]
+    User([🎤 User Voice / ⌨️ HUD Console / 🖐️ Hand Gestures / 🖱️ Tray / Hotkey: Ctrl+Space]) --> AudioPipeline[Voice & Input Pipeline]
     
     subgraph AudioPipeline [Audio & Input Pipeline]
         OWW[OpenWakeWord ONNX Engine] --> |'Hey Jarvis'| STT[Speech-to-Text Transcriber]
         VP[Voiceprint Biometrics: MFCC + Cosine Sim] --> |Speaker Match| Gatekeeper{Security Check}
+        Gestures[MediaPipe Vision: 21 Neon Hand Landmarks] --> |Air Gestures| GestureRouter[Gesture Command Engine]
     end
 
-    Gatekeeper --> |Authenticated| CoreRouter[Central Skill Manager & Router]
+    Gatekeeper --> |Authenticated| CoreRouter[Central Skill Manager & Multi-Action Router]
+    GestureRouter --> CoreRouter
 
     subgraph IntelligenceCore [Intelligence & Neural Core]
         LLM[Ollama: LLaMA 3.1:8b Local]
@@ -37,7 +39,7 @@ graph TD
     end
 
     CoreRouter --> IntelligenceCore
-    CoreRouter --> ExecutiveSkills[41 Modular Voice Skills]
+    CoreRouter --> ExecutiveSkills[42 Modular Voice Skills]
 
     subgraph ExecutiveSkills [Executive Skill Layers]
         Sentry[👁️ Desk Sentry: Haar Cascade Auto-Lock]
@@ -74,13 +76,17 @@ To provide full transparency, features are categorized by current verification s
 | :--- | :--- | :---: | :--- |
 | **HUD & GUI** | Modular Panels (`gui/panels/`) | `✔ Stable` | Decoupled telemetry, reactor, media, directives, environment, and controls. |
 | **HUD & GUI** | Dynamic Arc Reactor & 36-Band FFT Equalizer | `✔ Stable` | Real-time Tkinter canvas animations with mic reactivity. |
+| **HUD & GUI** | Anchored Viewport Terminal & Command Input | `✔ Stable` | Permanently pinned bottom console & dock with zero display clipping. |
 | **HUD & GUI** | Global Hotkey (`Ctrl + Space`) & System Tray | `✔ Stable` | Instant summon/minimize via Windows API `RegisterHotKey`. |
-| **Skill Router** | 41 Modular Skills Engine | `✔ Stable` | Priority-based routing, zero-failure dynamic imports. |
-| **Skill Router** | YouTube Search & Extraction | `✔ Stable` | Distinguishes YouTube search queries from Spotify music directives. |
+| **Memory Opt** | Windows PSAPI One-Click RAM Purge | `✔ Stable` | `EmptyWorkingSet()` trims working sets across active processes, reclaiming up to 1.8GB+. |
+| **Computer Vision**| Hand Gesture Control (`gesture_skill.py`) | `✔ Stable` | MediaPipe neural hand tracking: air volume pinch, speech interrupts, briefings. |
+| **Computer Vision**| Live Holographic Viewfinder Window | `✔ Stable` | OpenCV HUD popup rendering 21 neon cyan landmarks, bone connectors, and confidence. |
+| **Skill Router** | 42 Modular Skills Engine | `✔ Stable` | Priority-based routing, dynamic loading, and 100% test-verified dispatch. |
+| **Command Engine**| Multi-Command Action Chaining | `✔ Stable` | Intelligent conjunction splitting and verb inheritance (`open chrome and notepad`). |
+| **Architecture** | Graceful Lifecycle & Structured Logging | `✔ Stable` | Controlled startup/shutdown releasing webcam & audio, with unified file logger. |
 | **Environment** | Resilient Weather Controller | `✔ Stable` | Tomorrow.io $\rightarrow$ zero-key Open-Meteo fallback $\rightarrow$ cache. |
 | **Task Directives**| Stark Taskmaster | `✔ Stable` | SQLite-backed directive checklist with interactive `✔` buttons. |
 | **Developer Tools**| Coding Copilot (`coding_skill.py`) | `✔ Stable` | Synthesizes Python scripts and writes them to the Desktop. |
-| **Computer Vision**| Hand Gesture Control (`gesture_skill.py`) | `✔ Stable` | MediaPipe neural hand tracking: open palm interrupt, air pinch volume, victory briefing, thumbs up/down. |
 | **Local AI** | LLaMA 3.1:8b Local Chat & Reasoning | `⚡ Local Setup` | Requires local Ollama instance (`ollama pull llama3.1:8b`). |
 | **Computer Vision**| Gemma 3 Screen Analysis & Webcam Inspection | `⚡ Local Setup` | Requires Ollama vision model + local webcam device. |
 | **Biometrics** | Voiceprint Speaker Authentication | `⚡ Experimental` | MFCC acoustic extraction; calibrates to individual speaker timber. |
@@ -95,6 +101,7 @@ To provide full transparency, features are categorized by current verification s
 Jarvis/
 ├── assets/
 │   ├── icons/               # Multi-resolution J.A.R.V.I.S. application icons (.ico)
+│   ├── models/              # MediaPipe gesture recognizer task bundle (.task)
 │   ├── security/            # User voiceprint templates & biometric configs (.npy, .json)
 │   └── sounds/              # Synthesized Iron Man acoustic sound effects (.wav)
 ├── ai_brain/
@@ -107,44 +114,58 @@ Jarvis/
 │   ├── reminder_manager.py  # Asynchronous timer and reminder scheduler
 │   ├── sentry_guard.py      # OpenCV Haar Cascade webcam desk presence sentinel
 │   └── wellness_monitor.py  # Continuous screen-time & hydration monitor
+├── command_system/
+│   ├── automation.py        # Task plans and system automation handler
+│   ├── command_splitter.py  # Multi-command conjunction splitter & verb inheritance
+│   ├── detect_math_expression.py # Word-to-operator arithmetic engine
+│   └── intent_router.py     # Intent classification (system, math, time, browser, ai)
 ├── core/
 │   ├── assistant.py         # Main event loop, command worker & proactive services
+│   ├── lifecycle.py         # Graceful shutdown & hardware release coordinator
+│   ├── logger.py            # Unified structured logging engine
 │   └── skill_manager.py     # Dynamic modular skill discovery & priority dispatcher
 ├── gui/
 │   ├── gui.py               # Clean coordinator shell (~450 lines)
 │   ├── tray_manager.py      # Windows System Tray notification area integration
 │   └── panels/              # Modular HUD Panel Components
 │       ├── __init__.py      # Package exports
-│       ├── controls_panel.py# Hardware sliders, vision & diagnostic triggers
+│       ├── controls_panel.py# Hardware sliders, vision, diagnostics & RAM purge
 │       ├── environment_panel.py # Real-time clock & live weather fetcher
 │       ├── media_panel.py   # Live track metadata polling & controls
 │       ├── reactor_panel.py # Arc Reactor, Radar Compass & 36-band FFT equalizer
-│       ├── telemetry_panel.py # CPU/RAM radial gauges, network speedometer, badges
+│       ├── telemetry_panel.py # CPU/RAM radial gauges, purge button, badges
 │       └── todo_panel.py    # Stark Taskmaster SQLite checklist
 ├── memory_layer/
 │   ├── fact_extractor.py    # Structured memory extraction
 │   ├── memory.py            # JSON conversational persistence
 │   └── sqlite_memory.py     # SQLite structured relational storage
-├── skills/                  # 41 Modular Voice & Automation Skills
+├── skills/                  # 42 Modular Voice & Automation Skills
 │   ├── briefing_skill.py    # Tony Stark executive morning briefing
 │   ├── coding_skill.py      # Developer AI Copilot
 │   ├── diagnostics_skill.py # Mark VII hardware telemetry
-│   ├── focus_skill.py       # Focus Guard Pomodoro timer
+│   ├── gesture_skill.py     # Hand gesture control toggles & camera HUD
 │   ├── maid_skill.py        # Maid protocol deduplicator
 │   ├── research_skill.py    # Autonomous Deep Research agent
 │   ├── sentry_skill.py      # Desk Sentinel & Workstation Lock
+│   ├── system_info_skill.py # System telemetry & RAM purge
 │   ├── todo_skill.py        # Stark Taskmaster directives
 │   ├── youtube_skill.py     # YouTube search query extractor
-│   └── ...                  # 30+ additional system & media skills
+│   └── ...                  # 32+ additional system & media skills
 ├── system_layer/
 │   ├── briefing_controller.py   # Morning briefing compiler
 │   ├── diagnostics_controller.py# Hardware telemetry profiler
+│   ├── gesture_controller.py    # MediaPipe hand tracker & OpenCV viewfinder
 │   ├── maid_controller.py       # File deduplicator & organizer
+│   ├── system_control.py        # Operating system controls & Windows PSAPI purge
 │   ├── weather_controller.py    # Multi-tier resilient weather controller
 │   └── web_agent.py             # Live web intelligence scraper
-├── tests/                   # Automated Unit Test Suite
-│   ├── test_gui_panels.py   # Tests modular HUD panel interfaces
-│   ├── test_skills.py       # Tests skill router, priorities, and triggers
+├── tests/                   # Automated Unit Test Suite (29 Passing Tests)
+│   ├── test_all_commands.py # Verifies all 42 skills, intent router & command splitter
+│   ├── test_gesture_control.py # Tests pinch distance logic, state transitions & skills
+│   ├── test_lifecycle_logger.py# Tests shutdown hooks, logger severity & listeners
+│   ├── test_memory_purge.py # Tests Windows PSAPI working-set memory optimizer
+│   ├── test_modular_panels.py  # Tests decoupled CustomTkinter panel interfaces
+│   ├── test_skills.py       # Tests skill manager priority ordering & routing
 │   ├── test_voice_normalization.py # Tests symbol mapping and speech filters
 │   └── test_weather.py      # Tests multi-tier zero-key weather fallback
 ├── voice_engine/

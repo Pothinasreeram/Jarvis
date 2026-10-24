@@ -48,7 +48,11 @@ from voice_engine.voice import (
 
 from system_layer.system_control import handle_system_commands
 
+from command_system.command_splitter import split_commands
+from command_system.automation import handle_automation
 from command_system.intent_router import route_intent
+import core.logger as logger
+from core.lifecycle import shutdown_jarvis, register_shutdown_hook
 
 from ai_brain.brain import process_command
 
@@ -1065,13 +1069,7 @@ def is_duplicate_command(command):
     return False
 
 
-def handle_automation(command):
-    """Handle automation commands."""
-    return None
 
-def split_commands(command):
-    """Split multiple commands separated by 'and' or similar."""
-    return [command]
 
 # ---------------- WATCHDOG ----------------
 

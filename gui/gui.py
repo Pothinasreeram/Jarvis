@@ -38,6 +38,7 @@ from voice_engine.voice import (
 from program_finder import build_program_database
 import core.assistant as assistant_core
 from core.assistant import start_jarvis, command_queue
+from core.lifecycle import shutdown_jarvis, register_shutdown_hook
 
 # Import Modular Panel Components
 from gui.panels import (
@@ -95,10 +96,15 @@ def minimize_window(event=None):
     app.iconify()
 
 def close_app(event=None):
-    app.destroy()
-    os._exit(0)
+    try:
+        app.destroy()
+    except Exception:
+        pass
+    shutdown_jarvis(0)
 
 app.bind("<F11>", toggle_fullscreen)
+app.protocol("WM_DELETE_WINDOW", close_app)
+register_shutdown_hook(lambda: _lock_socket.close())
 
 # ---------------- ROOT CONTAINER ----------------
 
