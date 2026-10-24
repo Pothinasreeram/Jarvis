@@ -86,6 +86,11 @@ app.configure(fg_color=HUD_BG)
 
 is_fullscreen = True
 app.attributes("-fullscreen", True)
+app.deiconify()
+app.lift()
+app.attributes("-topmost", True)
+app.after(200, lambda: app.attributes("-topmost", False))
+app.focus_force()
 
 def toggle_fullscreen(event=None):
     global is_fullscreen
