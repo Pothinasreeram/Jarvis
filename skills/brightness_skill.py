@@ -1,5 +1,8 @@
 import re
-import screen_brightness_control as sbc
+try:
+    import screen_brightness_control as sbc
+except Exception:
+    sbc = None
 
 
 skill = {

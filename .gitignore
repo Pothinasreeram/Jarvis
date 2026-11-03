@@ -386,3 +386,6 @@ assets/security/*.json
 *_backup_v*.py
 skills/*_backup.py
 system_layer/*_backup.py
+# Autonomous Agency Database & Projects
+jarvis_projects.db*
+projects/

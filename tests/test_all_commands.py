@@ -90,6 +90,7 @@ class TestAllCommands(unittest.TestCase):
             "Browser": "google python documentation",
             "Chat Companion": "chat with me",
             "Vision": "take screenshot",
+            "Autonomous Project Studio": "assemble team to build inventory tool",
         }
 
         # Verify that all 42 mapped skills match their designated commands

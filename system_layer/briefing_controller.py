@@ -80,11 +80,22 @@ def generate_executive_briefing() -> str:
     water_count = get_hydration_count()
     water_summary = f"You have logged {water_count} of 8 glasses of water today."
 
+    # 6. Autonomous Engineering Project Standup
+    standup_summary = ""
+    try:
+        from core.agency import get_morning_standup_report
+        st_report = get_morning_standup_report()
+        if st_report:
+            standup_summary = f"{st_report} "
+    except Exception:
+        pass
+
     # Assemble speech
     briefing = (
         f"{greeting} The time is {time_str} on {date_str}. "
         f"{weather_summary}. "
         f"{todo_summary}. "
+        f"{standup_summary}"
         f"{diag_summary}. "
         f"{headline_summary} "
         f"{water_summary} "

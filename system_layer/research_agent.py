@@ -18,7 +18,10 @@ from voice_engine.sound_effects import play_fx
 USER_DIR = os.environ.get("USERPROFILE", "")
 DESKTOP_DIR = os.path.join(USER_DIR, "OneDrive", "Desktop") if os.path.exists(os.path.join(USER_DIR, "OneDrive", "Desktop")) else os.path.join(USER_DIR, "Desktop")
 RESEARCH_DIR = os.path.join(DESKTOP_DIR, "Research")
-os.makedirs(RESEARCH_DIR, exist_ok=True)
+try:
+    os.makedirs(RESEARCH_DIR, exist_ok=True)
+except Exception:
+    pass
 
 
 def _search_sources(query: str, max_results: int = 3) -> List[Dict[str, str]]:

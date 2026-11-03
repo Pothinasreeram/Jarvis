@@ -5,7 +5,10 @@ Profiles CPU, GPU, Memory, Disk, and Power envelopes with real-time Stark readou
 
 import os
 import psutil
-import wmi
+try:
+    import wmi
+except Exception:
+    wmi = None
 from typing import Dict, Any
 
 from voice_engine.sound_effects import play_fx

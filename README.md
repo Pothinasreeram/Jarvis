@@ -4,16 +4,16 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Local AI](https://img.shields.io/badge/Ollama-LLaMA_3.1:8B_%7C_Gemma_3-000000?style=for-the-badge&logo=ollama&logoColor=white)](https://ollama.ai/)
 [![GUI](https://img.shields.io/badge/CustomTkinter-Modular_Panels-00b4d8?style=for-the-badge)](https://github.com/TomSchimansky/CustomTkinter)
-[![Tests](https://img.shields.io/badge/Tests-39%20Passed%20%E2%9C%94-00ff66?style=for-the-badge)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-47%20Passed%20%E2%9C%94-00ff66?style=for-the-badge)](tests/)
 [![Platform](https://img.shields.io/badge/Platform-Windows_10_%2F_11-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://www.microsoft.com/)
 
 ---
 
 ## 🌌 Overview
 
-**J.A.R.V.I.S.** is an open-source, locally hosted autonomous AI desktop assistant inspired by Tony Stark's iconic system. Engineered with a **modular 42-skill architecture**, J.A.R.V.I.S. integrates **local Large Language Models (LLaMA 3.1:8b)**, **MediaPipe neural hand tracking with live holographic viewfinder**, **Windows PSAPI memory optimization**, **acoustic speaker biometrics**, **computer vision desk security**, and a **hardware-accelerated sci-fi HUD** with decoupled panel components.
+**J.A.R.V.I.S.** is an open-source, locally hosted autonomous AI desktop assistant inspired by Tony Stark's iconic system. Engineered with a **modular 43-skill architecture**, J.A.R.V.I.S. integrates **an autonomous multi-role software engineering team**, **local Large Language Models (LLaMA 3.1:8b)**, **MediaPipe neural hand tracking with live holographic viewfinder**, **Windows PSAPI memory optimization**, **acoustic speaker biometrics**, **computer vision desk security**, and a **hardware-accelerated sci-fi HUD** with decoupled panel components.
 
-Operating entirely offline for core tasks with zero cloud subscription lock-in, J.A.R.V.I.S. manages technical research synthesis, hardware thermal diagnostics, voice-authenticated workstation locks, media control, multi-command action chaining, and daily executive morning briefings.
+Operating entirely offline for core tasks with zero cloud subscription lock-in, J.A.R.V.I.S. manages full-lifecycle enterprise software engineering sprints, technical research synthesis, hardware thermal diagnostics, voice-authenticated workstation locks, media control, multi-command action chaining, and daily executive morning briefings.
 
 ---
 
@@ -39,10 +39,11 @@ graph TD
     end
 
     CoreRouter --> IntelligenceCore
-    CoreRouter --> ExecutiveSkills[42 Modular Voice Skills]
+    CoreRouter --> ExecutiveSkills[43 Modular Voice Skills]
 
     subgraph ExecutiveSkills [Executive Skill Layers]
         Sentry[👁️ Desk Sentry: Haar Cascade Auto-Lock]
+        Agency[🏢 Autonomous Engineering Agency: Multi-Day Sprints]
         Research[🧠 Autonomous Deep Research Agent]
         Taskmaster[📋 Stark Taskmaster: SQLite Directives]
         Diagnostics[⚡ Mark VII Hardware Diagnostics]
@@ -81,7 +82,8 @@ To provide full transparency, features are categorized by current verification s
 | **Memory Opt** | Windows PSAPI One-Click RAM Purge | `✔ Stable` | `EmptyWorkingSet()` trims working sets across active processes, reclaiming up to 1.8GB+. |
 | **Computer Vision**| Hand Gesture Control (`gesture_skill.py`) | `✔ Stable` | MediaPipe neural hand tracking: air volume pinch, speech interrupts, briefings. |
 | **Computer Vision**| Live Holographic Viewfinder Window | `✔ Stable` | OpenCV HUD popup rendering 21 neon cyan landmarks, bone connectors, and confidence. |
-| **Skill Router** | 42 Modular Skills Engine | `✔ Stable` | Priority-based routing, dynamic loading, and 100% test-verified dispatch. |
+| **Skill Router** | 43 Modular Skills Engine | `✔ Stable` | Priority-based routing, dynamic loading, and 100% test-verified dispatch. |
+| **Autonomous Agency** | Multi-Role AI Engineering Team (`core/agency/`, `project_agency_skill.py`) | `✔ Stable` | Top MNC SDLC: Architect, Developer, QA (subprocess test runner), DevOps. Multi-day persistent sprints with morning standup sync. |
 | **Command Engine**| Multi-Command Action Chaining | `✔ Stable` | Intelligent conjunction splitting and verb inheritance (`open chrome and notepad`). |
 | **Architecture** | Graceful Lifecycle & Structured Logging | `✔ Stable` | Controlled startup/shutdown releasing webcam & audio, with unified file logger. |
 | **Environment** | Resilient Weather Controller | `✔ Stable` | Tomorrow.io $\rightarrow$ zero-key Open-Meteo fallback $\rightarrow$ cache. |
@@ -122,6 +124,12 @@ Jarvis/
 ├── config/
 │   └── protocols.json       # Autonomous Protocol Studio workstation profiles
 ├── core/
+│   ├── agency/              # Autonomous AI Software Engineering Agency
+│   │   ├── __init__.py      # Package export & public API
+│   │   ├── agents.py        # Role agents: Architect, Developer, QA (subprocess test runner), DevOps
+│   │   ├── client_intake.py # Discovery questionnaire & enterprise PRD formulation
+│   │   ├── db.py            # SQLite WAL persistence (projects, sprints, tasks, artifacts, standups)
+│   │   └── orchestrator.py  # Multi-sprint state machine & morning standup sync
 │   ├── assistant.py         # Main event loop, command worker & proactive services
 │   ├── lifecycle.py         # Graceful shutdown & hardware release coordinator
 │   ├── logger.py            # Unified structured logging engine
@@ -141,12 +149,13 @@ Jarvis/
 │   ├── fact_extractor.py    # Structured memory extraction
 │   ├── memory.py            # JSON conversational persistence
 │   └── sqlite_memory.py     # SQLite + FTS5 semantic memory & BM25 conversation search
-├── skills/                  # 42 Modular Voice & Automation Skills
+├── skills/                  # 43 Modular Voice & Automation Skills
 │   ├── briefing_skill.py    # Tony Stark executive morning briefing
 │   ├── coding_skill.py      # Developer AI Copilot
 │   ├── diagnostics_skill.py # Mark VII hardware telemetry
 │   ├── gesture_skill.py     # Hand gesture control toggles & camera HUD
 │   ├── maid_skill.py        # Maid protocol deduplicator
+│   ├── project_agency_skill.py # Autonomous Project Studio & MNC engineering team
 │   ├── protocol_skill.py    # Autonomous Protocol Studio dispatcher
 │   ├── research_skill.py    # Autonomous Deep Research agent
 │   ├── sentry_skill.py      # Desk Sentinel & Workstation Lock
@@ -163,12 +172,13 @@ Jarvis/
 │   ├── system_control.py        # Operating system controls & Windows PSAPI purge
 │   ├── weather_controller.py    # Multi-tier resilient weather controller
 │   └── web_agent.py             # Live web intelligence scraper
-├── tests/                   # Automated Unit Test Suite (39 Passing Tests)
-│   ├── test_all_commands.py # Verifies all 42 skills, intent router & command splitter
+├── tests/                   # Automated Unit Test Suite (47 Passing Tests)
+│   ├── test_all_commands.py # Verifies all 43 skills, intent router & command splitter
 │   ├── test_gesture_control.py # Tests pinch distance logic, state transitions & skills
 │   ├── test_lifecycle_logger.py# Tests shutdown hooks, logger severity & listeners
 │   ├── test_memory_purge.py # Tests Windows PSAPI working-set memory optimizer
 │   ├── test_modular_panels.py  # Tests decoupled CustomTkinter panel interfaces
+│   ├── test_project_agency.py  # Tests autonomous agency DB, intake, agents, QA runner & multi-day lifecycle
 │   ├── test_skills.py       # Tests skill manager priority ordering & routing
 │   ├── test_upgrades_v2.py  # Tests FFT visualizer, Protocol Studio & FTS5 search
 │   ├── test_voice_normalization.py # Tests symbol mapping and speech filters
@@ -244,7 +254,10 @@ python -m unittest discover -s tests -p "test_*.py" -v
 
 | Category | Voice / Console Command | Result |
 | :--- | :--- | :--- |
-| **Morning Briefing** | `"good morning"` / `"morning briefing"` | Executive audio brief: weather, tasks, hardware, headlines & water. |
+| **Autonomous Agency** | `"assemble team to build <project>"` / `"start project"` | Initiates discovery intake, PRD synthesis, and initializes 5-sprint roadmap. |
+| **Sprint Management** | `"approve project PRD"` / `"proceed with sprint"` | Formally signs off on PRD; advances agency to architecture, code, or QA. |
+| **Engineering Standup** | `"project standup"` / `"team standup"` | Reports current multi-day sprint status, QA test pass rate, and blockers. |
+| **Morning Briefing** | `"good morning"` / `"morning briefing"` | Executive audio brief: weather, tasks, agency standup, hardware & headlines. |
 | **Developer Copilot** | `"write python code to scrape a website"` | Generates production code with LLaMA and saves to Desktop. |
 | **YouTube Search** | `"search youtube for lo-fi beats"` | Extracts query and opens YouTube search results in browser. |
 | **Hardware Diagnostics** | `"system diagnostics"` / `"mark vii status"` | Complete hardware profile (CPU GHz, RAM, GPU, thermals, health index). |
