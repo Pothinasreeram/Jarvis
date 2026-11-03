@@ -332,3 +332,4 @@ def get_latest_standup_for_active_projects() -> List[Dict[str, Any]]:
 
 # Auto-initialize database on import
 init_agency_db()
+

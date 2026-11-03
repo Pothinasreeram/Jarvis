@@ -953,7 +953,7 @@ def _process_queued_command(command):
 
                 try:
                     from memory_layer.sqlite_memory import log_conversation
-                    log_conversation(sub_cmd, reply, intent="skill")
+                    log_conversation(clean_command, reply, intent="skill")
                 except Exception:
                     pass
 

@@ -336,3 +336,4 @@ def get_project_summary(project_identifier: Any) -> Dict[str, Any]:
         "artifact_count": len(artifacts),
         "updated_at": proj["updated_at"]
     }
+
