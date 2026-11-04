@@ -252,8 +252,14 @@ Presentation & Entrypoint Interface for {project_name}
 Provides interactive command-line and programmatic dispatch.
 """
 
-import sys
 import os
+import sys
+
+# Ensure project root is in sys.path
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 from src.service import ProjectService
 
 
@@ -304,8 +310,14 @@ Verifies models, database isolation, service workflows, and exports.
 
 import unittest
 import os
+import sys
 import tempfile
 import shutil
+
+# Ensure project root is in sys.path
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 from src.models import DomainRecord
 from src.database import DatabaseManager

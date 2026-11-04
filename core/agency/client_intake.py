@@ -209,8 +209,10 @@ def initiate_client_project(project_name: str, objective: str, custom_answers: O
 
     return {
         "project_id": project_id,
+        "project_name": clean_name,
         "name": clean_name,
         "root_dir": project_root,
+        "project_path": project_root,
         "prd_path": prd_path,
         "status": "prd_ready",
         "current_sprint": 1,
