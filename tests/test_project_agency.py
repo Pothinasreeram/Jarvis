@@ -145,6 +145,32 @@ class TestAgentExecution(unittest.TestCase):
         self.assertTrue(qa_result["success"], f"QA test suite failed: {qa_result['output']}")
         self.assertGreaterEqual(qa_result["tests_run"], 4)
 
+    def test_archetype_detection(self):
+        from core.agency.client_intake import detect_archetype
+        self.assertEqual(detect_archetype("Build a desktop GUI dashboard"), "gui_desktop")
+        self.assertEqual(detect_archetype("Create a REST API for banking"), "rest_api")
+        self.assertEqual(detect_archetype("A background daemon service"), "daemon_worker")
+        self.assertEqual(detect_archetype("CLI tool to parse csv"), "cli_tool")
+
+    def test_self_healing_qa_loop(self):
+        models_code = DeveloperAgent.generate_models_code("SelfHealingTest")
+        db_code = DeveloperAgent.generate_database_code("SelfHealingTest")
+        service_code = DeveloperAgent.generate_service_code("SelfHealingTest")
+        test_code = QAAgent.generate_test_suite_code("SelfHealingTest")
+
+        with open(os.path.join(self.temp_proj, "src", "models.py"), "w", encoding="utf-8") as f:
+            f.write(models_code)
+        with open(os.path.join(self.temp_proj, "src", "database.py"), "w", encoding="utf-8") as f:
+            f.write(db_code)
+        with open(os.path.join(self.temp_proj, "src", "service.py"), "w", encoding="utf-8") as f:
+            f.write(service_code)
+        with open(os.path.join(self.temp_proj, "tests", "test_core.py"), "w", encoding="utf-8") as f:
+            f.write(test_code)
+
+        result = QAAgent.run_tests_with_healing(self.temp_proj, max_attempts=2)
+        self.assertTrue(result["success"])
+        self.assertGreaterEqual(result["tests_run"], 4)
+
 
 class TestOrchestratorLifecycle(unittest.TestCase):
     """Test full multi-sprint lifecycle and Gate sign-off."""

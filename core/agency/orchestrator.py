@@ -102,6 +102,14 @@ def execute_sprint_stage(project_identifier: Any, sprint_num: Optional[int] = No
     name = proj["name"]
     objective = proj["client_objective"]
 
+    # Extract project archetype from metadata
+    meta = {}
+    try:
+        meta = json.loads(proj.get("metadata", "{}") or "{}")
+    except Exception:
+        pass
+    archetype = meta.get("archetype", "cli_tool")
+
     update_sprint_status(p_id, s_num, "active")
     update_project_status(p_id, "in_progress", current_sprint=s_num)
 
@@ -113,7 +121,7 @@ def execute_sprint_stage(project_identifier: Any, sprint_num: Optional[int] = No
         prd_artifacts = get_artifacts_for_project(p_id, 1)
         prd_text = prd_artifacts[0]["content"] if prd_artifacts else objective
 
-        arch_content = ArchitectAgent.design_architecture(name, objective, prd_text)
+        arch_content = ArchitectAgent.design_architecture(name, objective, prd_text, archetype=archetype)
         arch_path = os.path.join(root, "ARCHITECTURE.md")
         with open(arch_path, "w", encoding="utf-8") as f:
             f.write(arch_content)
@@ -123,16 +131,16 @@ def execute_sprint_stage(project_identifier: Any, sprint_num: Optional[int] = No
 
         record_standup_log(
             p_id, 1, "System Architect",
-            f"Designed comprehensive layered architecture for {name}.",
+            f"Designed comprehensive layered architecture for {name} ({archetype.upper()}).",
             "Handing off data contracts to Developer Agent for Sprint 2 (Data Layer).",
             "None"
         )
-        summary = "Architecture designed, layered schema established, and component contracts signed off."
+        summary = f"Architecture designed for {archetype.upper()}, layered schema established, and component contracts signed off."
 
     # ---------------- SPRINT 2: DATA LAYER ----------------
     elif s_num == 2:
-        models_code = DeveloperAgent.generate_models_code(name)
-        db_code = DeveloperAgent.generate_database_code(name)
+        models_code = DeveloperAgent.generate_models_code(name, objective, archetype=archetype)
+        db_code = DeveloperAgent.generate_database_code(name, objective, archetype=archetype)
 
         models_path = os.path.join(root, "src", "models.py")
         db_path = os.path.join(root, "src", "database.py")
@@ -156,7 +164,7 @@ def execute_sprint_stage(project_identifier: Any, sprint_num: Optional[int] = No
 
     # ---------------- SPRINT 3: BUSINESS LOGIC ----------------
     elif s_num == 3:
-        service_code = DeveloperAgent.generate_service_code(name)
+        service_code = DeveloperAgent.generate_service_code(name, objective, archetype=archetype)
         service_path = os.path.join(root, "src", "service.py")
 
         with open(service_path, "w", encoding="utf-8") as f:
@@ -175,44 +183,47 @@ def execute_sprint_stage(project_identifier: Any, sprint_num: Optional[int] = No
 
     # ---------------- SPRINT 4: INTERFACE & APPLICATION ----------------
     elif s_num == 4:
-        app_code = DeveloperAgent.generate_app_code(name)
+        app_code = DeveloperAgent.generate_app_code(name, objective, archetype=archetype)
         app_path = os.path.join(root, "src", "app.py")
         run_bat_path = os.path.join(root, "run.bat")
 
         with open(app_path, "w", encoding="utf-8") as f:
             f.write(app_code)
+        launcher_code = DevOpsAgent.generate_launcher(name, archetype=archetype)
         with open(run_bat_path, "w", encoding="utf-8") as f:
-            f.write("@echo off\npython src/app.py\npause\n")
+            f.write(launcher_code)
 
         reqs_path = os.path.join(root, "requirements.txt")
+        reqs_code = DevOpsAgent.generate_requirements(archetype=archetype)
         with open(reqs_path, "w", encoding="utf-8") as f:
-            f.write("# Standard Library dependencies only\n")
+            f.write(reqs_code)
 
         save_artifact(p_id, 4, "code", "src/app.py", app_code)
-        deliverables.extend(["src/app.py", "run.bat"])
+        deliverables.extend(["src/app.py", "run.bat", "requirements.txt"])
 
         record_standup_log(
             p_id, 4, "Full-Stack Developer",
-            "Assembled interactive entrypoint and 1-click Windows launcher.",
+            f"Assembled interactive {archetype.upper()} entrypoint and 1-click Windows launcher.",
             "Passing complete codebase to QA Agent for Sprint 5 automated testing.",
             "None"
         )
-        summary = "Application shell wired and ready for test-driven verification."
+        summary = f"Application shell ({archetype}) wired and ready for test-driven verification."
 
     # ---------------- SPRINT 5: DEEP QA & DELIVERY ----------------
     elif s_num == 5:
         # 1. Generate QA test suite
-        test_code = QAAgent.generate_test_suite_code(name)
+        test_code = QAAgent.generate_test_suite_code(name, objective, archetype=archetype)
         test_path = os.path.join(root, "tests", "test_core.py")
         with open(test_path, "w", encoding="utf-8") as f:
             f.write(test_code)
 
-        # 2. Execute test suite in real subprocess
-        qa_results = QAAgent.execute_test_suite(root)
+        # 2. Execute test suite in real subprocess with Autonomous Self-Healing!
+        qa_results = QAAgent.run_tests_with_healing(root, max_attempts=3)
         test_count = qa_results.get("tests_run", 5)
+        healing_count = qa_results.get("healing_iterations", 0)
 
         # 3. Generate DevOps Readme
-        readme_content = DevOpsAgent.generate_readme(name, objective, test_count)
+        readme_content = DevOpsAgent.generate_readme(name, objective, test_count, archetype=archetype, healing_count=healing_count)
         readme_path = os.path.join(root, "README.md")
         with open(readme_path, "w", encoding="utf-8") as f:
             f.write(readme_content)
@@ -221,15 +232,16 @@ def execute_sprint_stage(project_identifier: Any, sprint_num: Optional[int] = No
         save_artifact(p_id, 5, "readme", "README.md", readme_content)
         deliverables.extend(["tests/test_core.py", "README.md"])
 
+        healing_note = f" (Self-Healing resolved {healing_count} issues)" if healing_count > 0 else ""
         record_standup_log(
             p_id, 5, "QA & DevOps Lead",
-            f"Executed automated test suite ({test_count} tests passed). Packaged deployment documentation.",
+            f"Executed automated test suite ({test_count} tests passed{healing_note}). Packaged deployment documentation.",
             "Project ready for final Client Acceptance Testing and executive sign-off.",
             "None"
         )
 
         update_project_status(p_id, status="completed", current_sprint=5)
-        update_sprint_status(p_id, 5, "completed", f"All {test_count} automated tests passed. Deployed successfully.")
+        update_sprint_status(p_id, 5, "completed", f"All {test_count} automated tests passed{healing_note}. Deployed successfully.")
 
         return {
             "success": True,
@@ -239,8 +251,9 @@ def execute_sprint_stage(project_identifier: Any, sprint_num: Optional[int] = No
             "status": "completed",
             "qa_passed": qa_results["success"],
             "tests_run": test_count,
+            "healing_iterations": healing_count,
             "deliverables": deliverables,
-            "message": f"Sprint 5 completed! {test_count} automated tests verified. Project ready on disk."
+            "message": f"Sprint 5 completed! {test_count} automated tests verified{healing_note}. Project ready on disk."
         }
 
     else:

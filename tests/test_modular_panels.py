@@ -16,6 +16,7 @@ class TestModularPanels(unittest.TestCase):
             "TodoPanel",
             "EnvironmentPanel",
             "ControlsPanel",
+            "AgencyPanel",
         ]
         for p in expected_panels:
             self.assertTrue(hasattr(panels, p), f"gui.panels missing {p}")
@@ -28,6 +29,7 @@ class TestModularPanels(unittest.TestCase):
         self.assertTrue(callable(panels.TodoPanel))
         self.assertTrue(callable(panels.EnvironmentPanel))
         self.assertTrue(callable(panels.ControlsPanel))
+        self.assertTrue(callable(panels.AgencyPanel))
 
 
 if __name__ == "__main__":

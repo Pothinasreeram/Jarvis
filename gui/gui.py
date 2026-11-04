@@ -48,6 +48,7 @@ from gui.panels import (
     TodoPanel,
     EnvironmentPanel,
     ControlsPanel,
+    AgencyPanel,
 )
 
 # Ensure programs database exists
@@ -465,6 +466,9 @@ media_panel.panel.pack(fill="x", pady=(0, 4), before=notif_panel)
 todo_panel = TodoPanel(right_col, create_hud_panel, notif_callback=add_notification)
 todo_panel.panel.pack(fill="x", pady=(0, 4), before=notif_panel)
 
+agency_panel = AgencyPanel(right_col, create_hud_panel, notif_callback=add_notification)
+agency_panel.panel.pack(fill="x", pady=(0, 4), before=notif_panel)
+
 # Command Input Dock Row (Bottom of HUD)
 dock_row = ctk.CTkFrame(bottom_section, fg_color="transparent")
 dock_row.pack(fill="x")
@@ -587,6 +591,7 @@ def media_update_loop():
 
 def todo_update_loop():
     todo_panel.refresh()
+    agency_panel.refresh()
     app.after(3000, todo_update_loop)
 
 # Trigger initial cycles

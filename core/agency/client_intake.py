@@ -26,6 +26,21 @@ PROJECTS_BASE_DIR = os.path.join(
 )
 
 
+def detect_archetype(objective: str, platform_hint: str = "") -> str:
+    """
+    Detect the project archetype based on client objectives and platform hints.
+    Supported: 'cli_tool', 'rest_api', 'gui_desktop', 'daemon_worker'.
+    """
+    combined = (objective + " " + platform_hint).lower()
+    if any(k in combined for k in ["gui", "desktop", "customtkinter", "tkinter", "window", "frontend", "dashboard"]):
+        return "gui_desktop"
+    if any(k in combined for k in ["api", "rest", "fastapi", "flask", "endpoint", "backend", "web service", "http"]):
+        return "rest_api"
+    if any(k in combined for k in ["daemon", "service", "background", "watcher", "scheduler", "monitor", "pinger", "agent"]):
+        return "daemon_worker"
+    return "cli_tool"
+
+
 def get_discovery_questions(project_name: str, brief: str) -> List[Dict[str, str]]:
     """
     Generate targeted discovery questions for the client based on initial brief.
@@ -184,8 +199,10 @@ def initiate_client_project(project_name: str, objective: str, custom_answers: O
         f.write(prd_content)
 
     # Create in database
+    archetype = detect_archetype(objective, answers.get("platform", ""))
     metadata = {
         "answers": answers,
+        "archetype": archetype,
         "prd_path": prd_path,
         "created_timestamp": datetime.now().isoformat()
     }
@@ -211,6 +228,7 @@ def initiate_client_project(project_name: str, objective: str, custom_answers: O
         "project_id": project_id,
         "project_name": clean_name,
         "name": clean_name,
+        "archetype": archetype,
         "root_dir": project_root,
         "project_path": project_root,
         "prd_path": prd_path,

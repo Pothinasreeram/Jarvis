@@ -4,7 +4,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Local AI](https://img.shields.io/badge/Ollama-LLaMA_3.1:8B_%7C_Gemma_3-000000?style=for-the-badge&logo=ollama&logoColor=white)](https://ollama.ai/)
 [![GUI](https://img.shields.io/badge/CustomTkinter-Modular_Panels-00b4d8?style=for-the-badge)](https://github.com/TomSchimansky/CustomTkinter)
-[![Tests](https://img.shields.io/badge/Tests-47%20Passed%20%E2%9C%94-00ff66?style=for-the-badge)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-49%20Passed%20%E2%9C%94-00ff66?style=for-the-badge)](tests/)
 [![Platform](https://img.shields.io/badge/Platform-Windows_10_%2F_11-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://www.microsoft.com/)
 
 ---
@@ -139,6 +139,7 @@ Jarvis/
 │   ├── tray_manager.py      # Windows System Tray notification area integration
 │   └── panels/              # Modular HUD Panel Components
 │       ├── __init__.py      # Package exports
+│       ├── agency_panel.py  # Stark Autonomous Project Studio live sprint tracker
 │       ├── controls_panel.py# Hardware sliders, vision, diagnostics & RAM purge
 │       ├── environment_panel.py # Real-time clock & live weather fetcher
 │       ├── media_panel.py   # Live track metadata polling & controls

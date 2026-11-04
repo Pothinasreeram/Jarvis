@@ -10,6 +10,7 @@ from gui.panels.media_panel import MediaPanel
 from gui.panels.todo_panel import TodoPanel
 from gui.panels.environment_panel import EnvironmentPanel
 from gui.panels.controls_panel import ControlsPanel
+from gui.panels.agency_panel import AgencyPanel
 
 __all__ = [
     "TelemetryPanel",
@@ -18,4 +19,5 @@ __all__ = [
     "TodoPanel",
     "EnvironmentPanel",
     "ControlsPanel",
+    "AgencyPanel",
 ]
