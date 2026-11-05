@@ -45,6 +45,7 @@ from core.agency.orchestrator import (
     approve_project_prd,
     execute_sprint_stage,
     advance_project_to_completion,
+    apply_change_request,
     get_morning_standup_report,
     get_project_summary,
 )
@@ -222,12 +223,50 @@ class TestOrchestratorLifecycle(unittest.TestCase):
         # Verify artifacts exist on disk
         root = proj["root_dir"]
         self.assertTrue(os.path.exists(os.path.join(root, "templates", "index.html")))
+        self.assertTrue(os.path.exists(os.path.join(root, "templates", "admin.html")))
         self.assertTrue(os.path.exists(os.path.join(root, "static", "css", "style.css")))
         self.assertTrue(os.path.exists(os.path.join(root, "static", "js", "main.js")))
         self.assertTrue(os.path.exists(os.path.join(root, "app.py")))
         self.assertTrue(os.path.exists(os.path.join(root, "run.bat")))
         self.assertTrue(os.path.exists(os.path.join(root, "tests", "test_web.py")))
         self.assertTrue(os.path.exists(os.path.join(root, "README.md")))
+
+    def test_change_request_workflow(self):
+        p_name = f"WebCR_{int(time.time() * 1000)}"
+        custom_answers = {
+            "platform": "Responsive Web Application",
+            "core_features": "Agency portfolio with dark mode and contact form"
+        }
+        proj = start_project_intake(p_name, "Build full responsive studio website", custom_answers)
+        p_id = proj["project_id"]
+        approve_project_prd(p_id)
+        advance_project_to_completion(p_id)
+
+        # 1. Testimonials Change Request
+        cr1 = apply_change_request(p_id, "add testimonials section to the website")
+        self.assertTrue(cr1["success"])
+        self.assertTrue(cr1["qa_passed"])
+        html_file = os.path.join(proj["root_dir"], "templates", "index.html")
+        with open(html_file, "r", encoding="utf-8") as f:
+            html = f.read()
+        self.assertIn("testimonials", html.lower())
+
+        # 2. Pricing Plans Change Request
+        cr2 = apply_change_request(p_id, "add pricing plans")
+        self.assertTrue(cr2["success"])
+        self.assertTrue(cr2["qa_passed"])
+        with open(html_file, "r", encoding="utf-8") as f:
+            html = f.read()
+        self.assertIn("pricing", html.lower())
+
+        # 3. Theme Change Request
+        cr3 = apply_change_request(p_id, "change theme to neon purple")
+        self.assertTrue(cr3["success"])
+        self.assertTrue(cr3["qa_passed"])
+        css_file = os.path.join(proj["root_dir"], "static", "css", "style.css")
+        with open(css_file, "r", encoding="utf-8") as f:
+            css = f.read()
+        self.assertIn("#a855f7", css)
 
 
 class TestAgencySkillRouting(unittest.TestCase):
@@ -240,6 +279,11 @@ class TestAgencySkillRouting(unittest.TestCase):
         self.assertTrue(agency_skill.can_handle("project status"))
         self.assertTrue(agency_skill.can_handle("approve PRD"))
         self.assertTrue(agency_skill.can_handle("list projects"))
+        self.assertTrue(agency_skill.can_handle("launch website"))
+        self.assertTrue(agency_skill.can_handle("preview project"))
+        self.assertTrue(agency_skill.can_handle("add testimonials to website"))
+        self.assertTrue(agency_skill.can_handle("add pricing table to the project"))
+        self.assertTrue(agency_skill.can_handle("change website theme"))
 
     def test_standup_execution(self):
         reply = agency_skill.execute("project standup")

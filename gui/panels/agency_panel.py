@@ -83,6 +83,36 @@ class AgencyPanel:
         )
         self.advance_btn.pack(side="left", padx=(0, 4))
 
+        self.launch_btn = ctk.CTkButton(
+            self.btn_row,
+            text="🚀 Launch",
+            width=80,
+            height=22,
+            font=FONT_SMALL,
+            fg_color="#062238",
+            hover_color="#064060",
+            border_color="#00f0ff",
+            border_width=1,
+            text_color="#00f0ff",
+            command=self._on_launch_app
+        )
+        self.launch_btn.pack(side="left", padx=(0, 4))
+
+        self.test_btn = ctk.CTkButton(
+            self.btn_row,
+            text="🧪 Run QA",
+            width=75,
+            height=22,
+            font=FONT_SMALL,
+            fg_color="#081826",
+            hover_color="#0d2b45",
+            border_color="#10b981",
+            border_width=1,
+            text_color="#10b981",
+            command=self._on_run_qa
+        )
+        self.test_btn.pack(side="left", padx=(0, 4))
+
         self.folder_btn = ctk.CTkButton(
             self.btn_row,
             text="📂 Open Code",
@@ -132,6 +162,63 @@ class AgencyPanel:
                 self._notify(f"Cannot open folder: {e}")
         else:
             self._notify("Project directory not found on disk.")
+
+    def _on_launch_app(self):
+        if not self.active_project_path or not os.path.exists(self.active_project_path):
+            self._notify("Project directory not found.")
+            return
+
+        app_py = os.path.join(self.active_project_path, "app.py")
+        run_bat = os.path.join(self.active_project_path, "run.bat")
+
+        try:
+            import webbrowser
+            import subprocess
+            if os.path.exists(app_py):
+                import urllib.request
+                is_running = False
+                try:
+                    with urllib.request.urlopen("http://127.0.0.1:5000/api/health", timeout=0.3) as resp:
+                        is_running = resp.status == 200
+                except Exception:
+                    is_running = False
+
+                if not is_running:
+                    subprocess.Popen(
+                        [sys.executable, app_py],
+                        cwd=self.active_project_path,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+                    )
+                webbrowser.open("http://localhost:5000")
+                self._notify("Web Application launched at http://localhost:5000")
+            elif os.path.exists(run_bat):
+                os.startfile(run_bat)
+                self._notify("Application launched via run.bat.")
+        except Exception as e:
+            self._notify(f"Launch error: {e}")
+
+    def _on_run_qa(self):
+        if not self.active_project_path or not os.path.exists(self.active_project_path):
+            self._notify("Project directory not found.")
+            return
+
+        try:
+            from core.agency.agents import QAAgent
+            import threading
+
+            def run():
+                res = QAAgent.execute_test_suite(self.active_project_path)
+                status = "PASSED" if res["success"] else "FAILED"
+                tests = res.get("tests_run", 0)
+                self._notify(f"QA Tests {status}: {tests} verified.")
+                self.refresh()
+
+            threading.Thread(target=run, daemon=True).start()
+            self._notify("Running automated QA test suite in background...")
+        except Exception as e:
+            self._notify(f"QA error: {e}")
 
     def refresh(self):
         """Query SQLite projects table and update live HUD studio state."""

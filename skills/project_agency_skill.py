@@ -10,7 +10,11 @@ Handles voice and console directives for multi-day agile project management:
 - "Jarvis, list projects" / "project status"
 """
 
+import os
+import sys
 import re
+import subprocess
+import webbrowser
 from typing import Dict, Any, List, Optional
 
 from core.agency import (
@@ -22,6 +26,7 @@ from core.agency import (
     get_project_summary,
     get_all_projects,
     detect_archetype,
+    apply_change_request,
 )
 
 skill = {
@@ -48,6 +53,10 @@ def can_handle(command: str) -> bool:
     if any(k in cmd for k in ["assemble team", "assemble a team", "assemble the team", "engineering team"]):
         return True
     if any(k in cmd for k in ["build to completion", "advance to completion", "complete the project", "build it completely", "run all sprints"]):
+        return True
+    if any(k in cmd for k in ["launch website", "open website", "run website", "preview website", "start website", "preview project", "view website"]):
+        return True
+    if any(k in cmd for k in ["add testimonial", "add review", "add pricing", "add plan", "change website", "update website", "modify website", "change theme", "add to website"]):
         return True
     if "project" in cmd and any(k in cmd for k in [
         "start", "new", "create", "build", "launch", "initiate", "make",
@@ -154,6 +163,68 @@ def execute(command: str) -> str:
                 f"You can launch the application by running `run.bat` in the project folder."
             )
         return res.get("message", "Sprint execution encountered an unexpected issue.")
+
+    # -------------------------------------------------------------
+    # 2.1 Launch Website / Preview Project
+    # -------------------------------------------------------------
+    if any(k in cmd for k in ["launch website", "open website", "run website", "preview website", "start website", "preview project", "view website"]):
+        projects = get_all_projects()
+        if not projects:
+            return "No engineering projects found in the studio queue to preview, Sir."
+
+        target = next((p for p in projects if os.path.exists(os.path.join(p["root_dir"], "app.py"))), projects[0])
+        root = target["root_dir"]
+        app_py = os.path.join(root, "app.py")
+
+        import urllib.request
+        import webbrowser
+        import subprocess
+
+        is_running = False
+        try:
+            with urllib.request.urlopen("http://127.0.0.1:5000/api/health", timeout=0.3) as resp:
+                is_running = resp.status == 200
+        except Exception:
+            is_running = False
+
+        if not is_running and os.path.exists(app_py):
+            subprocess.Popen(
+                [sys.executable, app_py],
+                cwd=root,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+            )
+
+        webbrowser.open("http://localhost:5000")
+        name_display = target["name"].replace("_", " ")
+        return (
+            f"Launching **{name_display}** Web Application, Sir.\n\n"
+            f"- **Public Website:** `http://localhost:5000` (Opened in default browser)\n"
+            f"- **Admin Portal:** `http://localhost:5000/admin` (SQLite leads management)\n"
+            f"- **Project Directory:** `{root}`"
+        )
+
+    # -------------------------------------------------------------
+    # 2.2 Iterative Change Requests (Sprint 6+)
+    # -------------------------------------------------------------
+    if any(k in cmd for k in ["add testimonial", "add review", "add pricing", "add plan", "change website", "update website", "modify website", "change theme", "add to website"]):
+        projects = get_all_projects()
+        if not projects:
+            return "No active projects found to modify, Sir."
+
+        target = next((p for p in projects if os.path.exists(os.path.join(p["root_dir"], "templates", "index.html"))), projects[0])
+        res = apply_change_request(target["id"], raw_cmd)
+        if res.get("success"):
+            name_display = target["name"].replace("_", " ")
+            files_updated = ", ".join(res.get("updated_files", []))
+            return (
+                f"Change Request deployed for **{name_display}**, Sir!\n\n"
+                f"- **Updated Files:** {files_updated}\n"
+                f"- **Regression QA:** {res.get('tests_run', 8)} automated tests verified.\n\n"
+                f"You can preview the live updates by saying **'launch website'** or refreshing `http://localhost:5000`."
+            )
+        return res.get("message", "Unable to apply change request.")
 
     # -------------------------------------------------------------
     # 3. Daily Standup Report

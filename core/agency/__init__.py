@@ -25,6 +25,7 @@ from .orchestrator import (
     advance_project_to_completion,
     get_morning_standup_report,
     get_project_summary,
+    apply_change_request,
 )
 
 __all__ = [
@@ -45,5 +46,6 @@ __all__ = [
     "advance_project_to_completion",
     "get_morning_standup_report",
     "get_project_summary",
+    "apply_change_request",
 ]
 

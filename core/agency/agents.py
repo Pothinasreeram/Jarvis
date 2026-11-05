@@ -814,6 +814,151 @@ if __name__ == "__main__":
 '''
 
     @staticmethod
+    def generate_admin_html(project_name: str, objective: str = "") -> str:
+        clean_title = project_name.replace("_", " ").title()
+        template = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{PROJECT_TITLE}} | Admin Management Portal</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .admin-nav { display: flex; gap: 1rem; align-items: center; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .stat-card { background: var(--bg-card); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: var(--radius-md); text-align: center; }
+        .stat-val { font-size: 2.2rem; font-weight: 700; color: var(--accent); margin-top: 0.5rem; }
+        .table-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 2rem; overflow-x: auto; }
+        .table-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap; }
+        .search-box { padding: 0.6rem 1rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); width: 280px; font-family: inherit; }
+        .data-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .data-table th, .data-table td { padding: 1rem; border-bottom: 1px solid var(--border-color); }
+        .data-table th { color: var(--accent); font-weight: 600; font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase; }
+        .data-table tr:hover { background: rgba(0, 240, 255, 0.04); }
+        .badge-status { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+    </style>
+</head>
+<body>
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="/" class="brand-logo">
+                <span class="logo-mark">&#x26A1;</span>
+                <span class="logo-text">{{PROJECT_TITLE}} Admin</span>
+            </a>
+            <div class="admin-nav">
+                <a href="/" class="btn btn-outline" style="padding: 0.5rem 1rem;">View Website</a>
+                <a href="/api/admin/export" class="btn btn-primary" style="padding: 0.5rem 1rem;">Export CSV</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="section">
+        <div class="section-container">
+            <div class="section-header" style="text-align: left; margin-bottom: 2rem;">
+                <span class="section-tag">MANAGEMENT CONSOLE</span>
+                <h1 class="section-title">Inquiries &amp; Leads Dispatch</h1>
+                <p class="section-subtitle">Real-time SQLite database persistence for client submissions.</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="section-tag">TOTAL INQUIRIES</div>
+                    <div id="statTotal" class="stat-val">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="section-tag">DATABASE ENGINE</div>
+                    <div class="stat-val" style="font-size: 1.5rem; color: #10b981;">SQLite WAL</div>
+                </div>
+                <div class="stat-card">
+                    <div class="section-tag">SERVER STATUS</div>
+                    <div class="stat-val" style="font-size: 1.5rem; color: #00f0ff;">Online 200 OK</div>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-toolbar">
+                    <input type="text" id="searchInput" class="search-box" placeholder="Filter by name or email...">
+                    <button id="refreshBtn" class="btn btn-outline" style="padding: 0.5rem 1rem;">&#x21BB; Refresh</button>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th># ID</th>
+                            <th>Client Name</th>
+                            <th>Email Address</th>
+                            <th>Message</th>
+                            <th>Received At</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inquiriesBody">
+                        <tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">Loading inquiries...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <p>&copy; 2026 {{PROJECT_TITLE}} Admin Portal. Engineered by J.A.R.V.I.S. Autonomous Engineering Agency.</p>
+        </div>
+    </footer>
+
+    <script>
+        let allInquiries = [];
+
+        async function fetchInquiries() {
+            try {
+                const res = await fetch('/api/inquiries');
+                const data = await res.json();
+                allInquiries = data.inquiries || [];
+                document.getElementById('statTotal').textContent = allInquiries.length;
+                renderTable(allInquiries);
+            } catch (err) {
+                document.getElementById('inquiriesBody').innerHTML = '<tr><td colspan="6" style="text-align: center; color: #ef4444;">Failed to load data from server.</td></tr>';
+            }
+        }
+
+        function renderTable(list) {
+            const tbody = document.getElementById('inquiriesBody');
+            if (!list.length) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 2rem;">No inquiries recorded yet. Submissions from the public contact form will appear here live.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = list.map(item => `
+                <tr>
+                    <td style="color: var(--accent); font-weight: 600;">#${item.id}</td>
+                    <td style="font-weight: 600;">${escapeHtml(item.name)}</td>
+                    <td><a href="mailto:${escapeHtml(item.email)}" style="color: var(--text-secondary); text-decoration: none;">${escapeHtml(item.email)}</a></td>
+                    <td style="max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(item.message)}</td>
+                    <td style="color: var(--text-secondary); font-size: 0.9rem;">${escapeHtml(item.created_at)}</td>
+                    <td><span class="badge-status">${escapeHtml(item.status)}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const q = e.target.value.toLowerCase();
+            const filtered = allInquiries.filter(i => (i.name && i.name.toLowerCase().includes(q)) || (i.email && i.email.toLowerCase().includes(q)) || (i.message && i.message.toLowerCase().includes(q)));
+            renderTable(filtered);
+        });
+
+        document.getElementById('refreshBtn').addEventListener('click', fetchInquiries);
+
+        fetchInquiries();
+    </script>
+</body>
+</html>
+'''
+        return template.replace("{{PROJECT_TITLE}}", clean_title)
+
+    @staticmethod
     def generate_web_css(project_name: str, objective: str = "") -> str:
         return '''/* Modern Design System - J.A.R.V.I.S. Autonomous Engineering */
 :root {
@@ -1293,9 +1438,9 @@ document.addEventListener("DOMContentLoaded", () => {
     @staticmethod
     def generate_web_server(project_name: str, objective: str = "") -> str:
         prompt = (
-            f"Generate a zero-dependency Python web server app.py for '{project_name}' ({objective}). "
-            f"Use http.server. Provide create_server(port), serve templates/index.html at '/', "
-            f"serve static/ files with proper MIME types, provide POST /api/contact and GET /api/health. "
+            f"Generate a zero-dependency full-stack Python web server app.py for '{project_name}' ({objective}). "
+            f"Use http.server with SQLite inquiries table, serve templates/index.html and templates/admin.html, "
+            f"serve static/ files, handle POST /api/contact, GET /api/inquiries, and GET /api/admin/export. "
             f"Output ONLY valid Python code."
         )
         system = "You are a Senior Web Infrastructure Engineer. Return ONLY valid python code in ```python ``` fences."
@@ -1308,27 +1453,51 @@ document.addEventListener("DOMContentLoaded", () => {
             except Exception:
                 pass
 
-        return f'''"""
-High-Performance Zero-Dependency Web Server for {project_name}
-Serves semantic HTML5 templates, static assets, and handles REST API requests.
+        server_template = '''"""
+High-Performance Full-Stack Web Server for {{PROJECT_NAME}}
+SQLite-backed persistence for contact inquiries, REST API endpoints, and Admin Portal.
 """
 
 import os
 import sys
 import json
+import sqlite3
+import csv
+import io
 import mimetypes
+from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
 
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 TEMPLATES_DIR = os.path.join(PROJECT_ROOT, "templates")
 STATIC_DIR = os.path.join(PROJECT_ROOT, "static")
+DATA_DIR = os.path.join(PROJECT_ROOT, "data")
+DB_PATH = os.path.join(DATA_DIR, "inquiries.db")
+
+
+def init_database():
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS inquiries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                message TEXT NOT NULL,
+                status TEXT DEFAULT 'new',
+                created_at TEXT NOT NULL
+            );
+        """)
+        conn.commit()
+
+
+init_database()
 
 
 class WebRequestHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
-        # Clean terminal logging
-        print(f"[HTTP] {{self.address_string()}} - {{format % args}}", file=sys.stderr)
+        print(f"[HTTP] {self.address_string()} - {format % args}", file=sys.stderr)
 
     def _send_json(self, status: int, data: dict):
         self.send_response(status)
@@ -1357,11 +1526,37 @@ class WebRequestHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path
 
-        if path == "/" or path == "/index.html":
+        if path in ["/", "/index.html"]:
             index_path = os.path.join(TEMPLATES_DIR, "index.html")
             self._serve_file(index_path, "text/html; charset=utf-8")
+        elif path in ["/admin", "/admin.html"]:
+            admin_path = os.path.join(TEMPLATES_DIR, "admin.html")
+            self._serve_file(admin_path, "text/html; charset=utf-8")
         elif path == "/api/health":
-            self._send_json(200, {{"status": "online", "application": "{project_name}", "version": "1.0.0"}})
+            self._send_json(200, {"status": "online", "application": "{{PROJECT_NAME}}", "version": "1.0.0"})
+        elif path == "/api/inquiries":
+            with sqlite3.connect(DB_PATH) as conn:
+                conn.row_factory = sqlite3.Row
+                rows = conn.execute("SELECT * FROM inquiries ORDER BY id DESC").fetchall()
+                inquiries = [dict(r) for r in rows]
+            self._send_json(200, {"count": len(inquiries), "inquiries": inquiries})
+        elif path == "/api/admin/export":
+            with sqlite3.connect(DB_PATH) as conn:
+                conn.row_factory = sqlite3.Row
+                rows = conn.execute("SELECT id, name, email, message, status, created_at FROM inquiries ORDER BY id ASC").fetchall()
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow(["ID", "Name", "Email", "Message", "Status", "Created At"])
+            for r in rows:
+                writer.writerow([r["id"], r["name"], r["email"], r["message"], r["status"], r["created_at"]])
+            csv_bytes = output.getvalue().encode("utf-8")
+
+            self.send_response(200)
+            self.send_header("Content-Type", "text/csv; charset=utf-8")
+            self.send_header("Content-Disposition", "attachment; filename=inquiries_export.csv")
+            self.send_header("Content-Length", str(len(csv_bytes)))
+            self.end_headers()
+            self.wfile.write(csv_bytes)
         elif path.startswith("/static/"):
             rel_path = path[len("/static/"):].lstrip("/")
             file_path = os.path.join(STATIC_DIR, rel_path)
@@ -1381,17 +1576,30 @@ class WebRequestHandler(BaseHTTPRequestHandler):
             content_length = int(self.headers.get("Content-Length", 0))
             post_data = self.rfile.read(content_length)
             try:
-                data = json.loads(post_data.decode("utf-8")) if post_data else {{}}
-                name = data.get("name", "Valued Client")
-                print(f"[CONTACT INQUIRY] Received message from '{{name}}' ({{data.get('email', 'No email')}})")
-                self._send_json(200, {{
+                data = json.loads(post_data.decode("utf-8")) if post_data else {}
+                name = data.get("name", "").strip() or "Valued Client"
+                email = data.get("email", "").strip() or "client@example.com"
+                message = data.get("message", "").strip() or "No message provided"
+                now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                with sqlite3.connect(DB_PATH) as conn:
+                    cur = conn.execute(
+                        "INSERT INTO inquiries (name, email, message, created_at) VALUES (?, ?, ?, ?)",
+                        (name, email, message, now)
+                    )
+                    conn.commit()
+                    new_id = cur.lastrowid
+
+                print(f"[CONTACT INQUIRY #{new_id}] Received message from '{name}' ({email})")
+                self._send_json(200, {
                     "success": True,
-                    "message": f"Thank you {{name}}! Your transmission has been securely recorded."
-                }})
+                    "inquiry_id": new_id,
+                    "message": f"Thank you {name}! Your transmission has been securely recorded."
+                })
             except Exception as e:
-                self._send_json(400, {{"success": False, "error": str(e)}})
+                self._send_json(400, {"success": False, "error": str(e)})
         else:
-            self._send_json(404, {{"error": "Endpoint not found"}})
+            self._send_json(404, {"error": "Endpoint not found"})
 
 
 def create_server(port: int = 5000) -> HTTPServer:
@@ -1402,8 +1610,9 @@ def main():
     port = 5000
     server = create_server(port)
     print("=" * 60)
-    print(f"  {project_name.upper()} - ENTERPRISE WEB SERVER")
-    print(f"  Active URL: http://localhost:{{port}}")
+    print(f"  {{PROJECT_NAME_UPPER}} - ENTERPRISE FULL-STACK WEB SERVER")
+    print(f"  Public Portal: http://localhost:{port}")
+    print(f"  Admin Console: http://localhost:{port}/admin")
     print("  Engineered by J.A.R.V.I.S. Autonomous Engineering Agency")
     print("=" * 60)
     try:
@@ -1416,6 +1625,7 @@ def main():
 if __name__ == "__main__":
     main()
 '''
+        return server_template.replace("{{PROJECT_NAME}}", project_name).replace("{{PROJECT_NAME_UPPER}}", project_name.upper())
 
     @staticmethod
     def heal_code(project_root: str, test_output: str) -> Dict[str, Any]:
@@ -1585,8 +1795,8 @@ if __name__ == "__main__":
     def generate_web_test_suite(project_name: str, objective: str = "") -> str:
         prompt = (
             f"Generate a Python unittest suite test_web.py for web application '{project_name}'. "
-            f"Test that index.html contains semantic tags, style.css contains media queries and styling, "
-            f"main.js contains fetch and submit listeners, and test the HTTP server in app.py. Output ONLY valid Python code."
+            f"Test semantic HTML in index.html, admin portal in admin.html, styles in style.css, "
+            f"JS listeners in main.js, and HTTP server endpoints in app.py. Output ONLY valid Python code."
         )
         system = "You are a Lead QA Automation Engineer. Return ONLY valid python code in ```python ``` fences."
         llm_out = _call_llm(prompt, system)
@@ -1598,8 +1808,8 @@ if __name__ == "__main__":
             except Exception:
                 pass
 
-        return f'''"""
-Automated Web Application QA Test Suite for {project_name}
+        test_template = '''"""
+Automated Web Application QA Test Suite for {{PROJECT_NAME}}
 Archetype: web_application
 Verifies semantic HTML markup, responsive CSS, client JS, and live HTTP server endpoints.
 """
@@ -1654,6 +1864,14 @@ class TestWebApplication(unittest.TestCase):
         self.assertIn("<footer", content)
         self.assertIn("<form", content)
 
+    def test_admin_portal_template(self):
+        admin_path = os.path.join(PROJECT_ROOT, "templates", "admin.html")
+        self.assertTrue(os.path.exists(admin_path), "templates/admin.html must exist")
+        with open(admin_path, "r", encoding="utf-8") as f:
+            content = f.read().lower()
+        self.assertIn("<table", content)
+        self.assertIn("inquiries", content)
+
     def test_responsive_css_styling(self):
         css_path = os.path.join(PROJECT_ROOT, "static", "css", "style.css")
         self.assertTrue(os.path.exists(css_path), "static/css/style.css must exist")
@@ -1672,7 +1890,7 @@ class TestWebApplication(unittest.TestCase):
     def test_http_server_root_endpoint(self):
         if not getattr(self, "socket_enabled", False):
             self.skipTest("Loopback network restricted by environment policy")
-        url = f"http://127.0.0.1:{{self.test_port}}/"
+        url = f"http://127.0.0.1:{self.test_port}/"
         try:
             req = urllib.request.Request(url)
             with urllib.request.urlopen(req, timeout=5) as resp:
@@ -1680,12 +1898,25 @@ class TestWebApplication(unittest.TestCase):
                 body = resp.read().decode("utf-8")
                 self.assertIn("<html", body.lower())
         except (PermissionError, urllib.error.URLError) as e:
-            self.skipTest(f"Socket connection restricted: {{e}}")
+            self.skipTest(f"Socket connection restricted: {e}")
+
+    def test_http_server_admin_portal(self):
+        if not getattr(self, "socket_enabled", False):
+            self.skipTest("Loopback network restricted by environment policy")
+        url = f"http://127.0.0.1:{self.test_port}/admin"
+        try:
+            req = urllib.request.Request(url)
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                self.assertEqual(resp.status, 200)
+                body = resp.read().decode("utf-8")
+                self.assertIn("<html", body.lower())
+        except (PermissionError, urllib.error.URLError) as e:
+            self.skipTest(f"Socket connection restricted: {e}")
 
     def test_http_server_static_assets(self):
         if not getattr(self, "socket_enabled", False):
             self.skipTest("Loopback network restricted by environment policy")
-        url = f"http://127.0.0.1:{{self.test_port}}/static/css/style.css"
+        url = f"http://127.0.0.1:{self.test_port}/static/css/style.css"
         try:
             req = urllib.request.Request(url)
             with urllib.request.urlopen(req, timeout=5) as resp:
@@ -1693,12 +1924,12 @@ class TestWebApplication(unittest.TestCase):
                 content_type = resp.headers.get("Content-Type", "")
                 self.assertIn("text/css", content_type)
         except (PermissionError, urllib.error.URLError) as e:
-            self.skipTest(f"Socket connection restricted: {{e}}")
+            self.skipTest(f"Socket connection restricted: {e}")
 
     def test_http_server_api_health(self):
         if not getattr(self, "socket_enabled", False):
             self.skipTest("Loopback network restricted by environment policy")
-        url = f"http://127.0.0.1:{{self.test_port}}/api/health"
+        url = f"http://127.0.0.1:{self.test_port}/api/health"
         try:
             req = urllib.request.Request(url)
             with urllib.request.urlopen(req, timeout=5) as resp:
@@ -1706,26 +1937,46 @@ class TestWebApplication(unittest.TestCase):
                 data = json.loads(resp.read().decode("utf-8"))
                 self.assertEqual(data.get("status"), "online")
         except (PermissionError, urllib.error.URLError) as e:
-            self.skipTest(f"Socket connection restricted: {{e}}")
+            self.skipTest(f"Socket connection restricted: {e}")
 
-    def test_http_server_api_contact(self):
+    def test_http_server_api_contact_persistence(self):
         if not getattr(self, "socket_enabled", False):
             self.skipTest("Loopback network restricted by environment policy")
-        url = f"http://127.0.0.1:{{self.test_port}}/api/contact"
-        payload = json.dumps({{"name": "Bruce Wayne", "email": "bruce@wayne.com", "message": "Consultation inquiry"}}).encode("utf-8")
+        url = f"http://127.0.0.1:{self.test_port}/api/contact"
+        payload = json.dumps({"name": "Bruce Wayne", "email": "bruce@wayne.com", "message": "Consultation inquiry"}).encode("utf-8")
         try:
-            req = urllib.request.Request(url, data=payload, headers={{"Content-Type": "application/json"}}, method="POST")
+            req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
             with urllib.request.urlopen(req, timeout=5) as resp:
                 self.assertEqual(resp.status, 200)
                 data = json.loads(resp.read().decode("utf-8"))
                 self.assertTrue(data.get("success", False))
+                self.assertIn("inquiry_id", data)
+
+            inq_url = f"http://127.0.0.1:{self.test_port}/api/inquiries"
+            with urllib.request.urlopen(inq_url, timeout=5) as inq_resp:
+                self.assertEqual(inq_resp.status, 200)
+                inq_data = json.loads(inq_resp.read().decode("utf-8"))
+                self.assertGreaterEqual(inq_data.get("count", 0), 1)
         except (PermissionError, urllib.error.URLError) as e:
-            self.skipTest(f"Socket connection restricted: {{e}}")
+            self.skipTest(f"Socket connection restricted: {e}")
+
+    def test_http_server_admin_export(self):
+        if not getattr(self, "socket_enabled", False):
+            self.skipTest("Loopback network restricted by environment policy")
+        url = f"http://127.0.0.1:{self.test_port}/api/admin/export"
+        try:
+            req = urllib.request.Request(url)
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                self.assertEqual(resp.status, 200)
+                self.assertIn("text/csv", resp.headers.get("Content-Type", ""))
+        except (PermissionError, urllib.error.URLError) as e:
+            self.skipTest(f"Socket connection restricted: {e}")
 
 
 if __name__ == "__main__":
     unittest.main()
 '''
+        return test_template.replace("{{PROJECT_NAME}}", project_name)
 
     @staticmethod
     def execute_test_suite(project_root: str) -> Dict[str, Any]:
