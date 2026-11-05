@@ -10,6 +10,7 @@ Coordinates the multi-agent software engineering lifecycle:
 
 import os
 import sys
+import json
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
@@ -25,7 +26,7 @@ from .db import (
     get_artifacts_for_project,
     get_sprints_for_project,
 )
-from .client_intake import initiate_client_project
+from .client_intake import initiate_client_project, detect_archetype
 from .agents import (
     ArchitectAgent,
     DeveloperAgent,
@@ -104,11 +105,21 @@ def execute_sprint_stage(project_identifier: Any, sprint_num: Optional[int] = No
 
     # Extract project archetype from metadata
     meta = {}
-    try:
-        meta = json.loads(proj.get("metadata", "{}") or "{}")
-    except Exception:
-        pass
-    archetype = meta.get("archetype", "cli_tool")
+    raw_meta = proj.get("metadata", {})
+    if isinstance(raw_meta, dict):
+        meta = raw_meta
+    elif isinstance(raw_meta, str):
+        try:
+            meta = json.loads(raw_meta)
+        except Exception:
+            pass
+    archetype = meta.get("archetype")
+    if not archetype or archetype == "cli_tool":
+        detected = detect_archetype(objective)
+        if detected != "cli_tool":
+            archetype = detected
+        elif not archetype:
+            archetype = "cli_tool"
 
     update_sprint_status(p_id, s_num, "active")
     update_project_status(p_id, "in_progress", current_sprint=s_num)
@@ -137,83 +148,164 @@ def execute_sprint_stage(project_identifier: Any, sprint_num: Optional[int] = No
         )
         summary = f"Architecture designed for {archetype.upper()}, layered schema established, and component contracts signed off."
 
-    # ---------------- SPRINT 2: DATA LAYER ----------------
+    # ---------------- SPRINT 2: DATA LAYER / FRONTEND ----------------
     elif s_num == 2:
-        models_code = DeveloperAgent.generate_models_code(name, objective, archetype=archetype)
-        db_code = DeveloperAgent.generate_database_code(name, objective, archetype=archetype)
+        if archetype == "web_application":
+            html_code = DeveloperAgent.generate_web_html(name, objective)
+            css_code = DeveloperAgent.generate_web_css(name, objective)
 
-        models_path = os.path.join(root, "src", "models.py")
-        db_path = os.path.join(root, "src", "database.py")
+            html_path = os.path.join(root, "templates", "index.html")
+            css_path = os.path.join(root, "static", "css", "style.css")
+            os.makedirs(os.path.dirname(html_path), exist_ok=True)
+            os.makedirs(os.path.dirname(css_path), exist_ok=True)
 
-        with open(models_path, "w", encoding="utf-8") as f:
-            f.write(models_code)
-        with open(db_path, "w", encoding="utf-8") as f:
-            f.write(db_code)
+            with open(html_path, "w", encoding="utf-8") as f:
+                f.write(html_code)
+            with open(css_path, "w", encoding="utf-8") as f:
+                f.write(css_code)
 
-        save_artifact(p_id, 2, "code", "src/models.py", models_code)
-        save_artifact(p_id, 2, "code", "src/database.py", db_code)
-        deliverables.extend(["src/models.py", "src/database.py"])
+            save_artifact(p_id, 2, "code", "templates/index.html", html_code)
+            save_artifact(p_id, 2, "code", "static/css/style.css", css_code)
+            deliverables.extend(["templates/index.html", "static/css/style.css"])
 
-        record_standup_log(
-            p_id, 2, "Database Engineer",
-            "Implemented domain models and SQLite repository with WAL mode.",
-            "Preparing business logic controllers for Sprint 3.",
-            "None"
-        )
-        summary = "Domain models dataclass and SQLite repository layer fully operational."
+            record_standup_log(
+                p_id, 2, "Frontend Engineer",
+                f"Implemented semantic HTML5 layout and responsive CSS3 design system for {name}.",
+                "Handing frontend contracts to Full-Stack Developer for Sprint 3 (Interactivity & Server).",
+                "None"
+            )
+            summary = "Semantic HTML5 and responsive CSS3 styling operational."
+        else:
+            models_code = DeveloperAgent.generate_models_code(name, objective, archetype=archetype)
+            db_code = DeveloperAgent.generate_database_code(name, objective, archetype=archetype)
 
-    # ---------------- SPRINT 3: BUSINESS LOGIC ----------------
+            models_path = os.path.join(root, "src", "models.py")
+            db_path = os.path.join(root, "src", "database.py")
+
+            with open(models_path, "w", encoding="utf-8") as f:
+                f.write(models_code)
+            with open(db_path, "w", encoding="utf-8") as f:
+                f.write(db_code)
+
+            save_artifact(p_id, 2, "code", "src/models.py", models_code)
+            save_artifact(p_id, 2, "code", "src/database.py", db_code)
+            deliverables.extend(["src/models.py", "src/database.py"])
+
+            record_standup_log(
+                p_id, 2, "Database Engineer",
+                "Implemented domain models and SQLite repository with WAL mode.",
+                "Preparing business logic controllers for Sprint 3.",
+                "None"
+            )
+            summary = "Domain models dataclass and SQLite repository layer fully operational."
+
+    # ---------------- SPRINT 3: BUSINESS LOGIC / CLIENT SCRIPT & SERVER ----------------
     elif s_num == 3:
-        service_code = DeveloperAgent.generate_service_code(name, objective, archetype=archetype)
-        service_path = os.path.join(root, "src", "service.py")
+        if archetype == "web_application":
+            js_code = DeveloperAgent.generate_web_js(name, objective)
+            server_code = DeveloperAgent.generate_web_server(name, objective)
 
-        with open(service_path, "w", encoding="utf-8") as f:
-            f.write(service_code)
+            js_path = os.path.join(root, "static", "js", "main.js")
+            server_path = os.path.join(root, "app.py")
+            os.makedirs(os.path.dirname(js_path), exist_ok=True)
 
-        save_artifact(p_id, 3, "code", "src/service.py", service_code)
-        deliverables.append("src/service.py")
+            with open(js_path, "w", encoding="utf-8") as f:
+                f.write(js_code)
+            with open(server_path, "w", encoding="utf-8") as f:
+                f.write(server_code)
 
-        record_standup_log(
-            p_id, 3, "Backend Developer",
-            "Implemented service layer with CRUD workflows and CSV/JSON export pipelines.",
-            "Ready for user interface and presentation integration in Sprint 4.",
-            "None"
-        )
-        summary = "Core business workflows, filtering, and export controllers implemented."
+            save_artifact(p_id, 3, "code", "static/js/main.js", js_code)
+            save_artifact(p_id, 3, "code", "app.py", server_code)
+            deliverables.extend(["static/js/main.js", "app.py"])
+
+            record_standup_log(
+                p_id, 3, "Full-Stack Developer",
+                f"Implemented asynchronous JavaScript client logic and zero-dependency Python HTTP server for {name}.",
+                "Passing server and assets to DevOps for Sprint 4 packaging and launch script.",
+                "None"
+            )
+            summary = "Client-side interactive JavaScript and backend Python HTTP server deployed."
+        else:
+            service_code = DeveloperAgent.generate_service_code(name, objective, archetype=archetype)
+            service_path = os.path.join(root, "src", "service.py")
+
+            with open(service_path, "w", encoding="utf-8") as f:
+                f.write(service_code)
+
+            save_artifact(p_id, 3, "code", "src/service.py", service_code)
+            deliverables.append("src/service.py")
+
+            record_standup_log(
+                p_id, 3, "Backend Developer",
+                "Implemented service layer with CRUD workflows and CSV/JSON export pipelines.",
+                "Ready for user interface and presentation integration in Sprint 4.",
+                "None"
+            )
+            summary = "Core business workflows, filtering, and export controllers implemented."
 
     # ---------------- SPRINT 4: INTERFACE & APPLICATION ----------------
     elif s_num == 4:
-        app_code = DeveloperAgent.generate_app_code(name, objective, archetype=archetype)
-        app_path = os.path.join(root, "src", "app.py")
-        run_bat_path = os.path.join(root, "run.bat")
+        if archetype == "web_application":
+            run_bat_path = os.path.join(root, "run.bat")
+            launcher_code = DevOpsAgent.generate_launcher(name, archetype=archetype)
+            with open(run_bat_path, "w", encoding="utf-8") as f:
+                f.write(launcher_code)
 
-        with open(app_path, "w", encoding="utf-8") as f:
-            f.write(app_code)
-        launcher_code = DevOpsAgent.generate_launcher(name, archetype=archetype)
-        with open(run_bat_path, "w", encoding="utf-8") as f:
-            f.write(launcher_code)
+            reqs_path = os.path.join(root, "requirements.txt")
+            reqs_code = DevOpsAgent.generate_requirements(archetype=archetype)
+            with open(reqs_path, "w", encoding="utf-8") as f:
+                f.write(reqs_code)
 
-        reqs_path = os.path.join(root, "requirements.txt")
-        reqs_code = DevOpsAgent.generate_requirements(archetype=archetype)
-        with open(reqs_path, "w", encoding="utf-8") as f:
-            f.write(reqs_code)
+            save_artifact(p_id, 4, "devops", "run.bat", launcher_code)
+            save_artifact(p_id, 4, "devops", "requirements.txt", reqs_code)
+            deliverables.extend(["run.bat", "requirements.txt"])
 
-        save_artifact(p_id, 4, "code", "src/app.py", app_code)
-        deliverables.extend(["src/app.py", "run.bat", "requirements.txt"])
+            record_standup_log(
+                p_id, 4, "DevOps Engineer",
+                f"Generated 1-click Windows launcher (auto-browser launch) and runtime configurations for {name}.",
+                "Passing complete web solution to QA Lead for Sprint 5 automated testing.",
+                "None"
+            )
+            summary = "1-Click browser launcher and runtime configurations established."
+        else:
+            app_code = DeveloperAgent.generate_app_code(name, objective, archetype=archetype)
+            app_path = os.path.join(root, "src", "app.py")
+            run_bat_path = os.path.join(root, "run.bat")
 
-        record_standup_log(
-            p_id, 4, "Full-Stack Developer",
-            f"Assembled interactive {archetype.upper()} entrypoint and 1-click Windows launcher.",
-            "Passing complete codebase to QA Agent for Sprint 5 automated testing.",
-            "None"
-        )
-        summary = f"Application shell ({archetype}) wired and ready for test-driven verification."
+            with open(app_path, "w", encoding="utf-8") as f:
+                f.write(app_code)
+            launcher_code = DevOpsAgent.generate_launcher(name, archetype=archetype)
+            with open(run_bat_path, "w", encoding="utf-8") as f:
+                f.write(launcher_code)
+
+            reqs_path = os.path.join(root, "requirements.txt")
+            reqs_code = DevOpsAgent.generate_requirements(archetype=archetype)
+            with open(reqs_path, "w", encoding="utf-8") as f:
+                f.write(reqs_code)
+
+            save_artifact(p_id, 4, "code", "src/app.py", app_code)
+            deliverables.extend(["src/app.py", "run.bat", "requirements.txt"])
+
+            record_standup_log(
+                p_id, 4, "Full-Stack Developer",
+                f"Assembled interactive {archetype.upper()} entrypoint and 1-click Windows launcher.",
+                "Passing complete codebase to QA Agent for Sprint 5 automated testing.",
+                "None"
+            )
+            summary = f"Application shell ({archetype}) wired and ready for test-driven verification."
 
     # ---------------- SPRINT 5: DEEP QA & DELIVERY ----------------
     elif s_num == 5:
         # 1. Generate QA test suite
-        test_code = QAAgent.generate_test_suite_code(name, objective, archetype=archetype)
-        test_path = os.path.join(root, "tests", "test_core.py")
+        if archetype == "web_application":
+            test_code = QAAgent.generate_web_test_suite(name, objective)
+            test_rel_path = "tests/test_web.py"
+        else:
+            test_code = QAAgent.generate_test_suite_code(name, objective, archetype=archetype)
+            test_rel_path = "tests/test_core.py"
+
+        test_path = os.path.join(root, test_rel_path.replace("/", os.sep))
+        os.makedirs(os.path.dirname(test_path), exist_ok=True)
         with open(test_path, "w", encoding="utf-8") as f:
             f.write(test_code)
 
@@ -228,9 +320,9 @@ def execute_sprint_stage(project_identifier: Any, sprint_num: Optional[int] = No
         with open(readme_path, "w", encoding="utf-8") as f:
             f.write(readme_content)
 
-        save_artifact(p_id, 5, "tests", "tests/test_core.py", test_code)
+        save_artifact(p_id, 5, "tests", test_rel_path, test_code)
         save_artifact(p_id, 5, "readme", "README.md", readme_content)
-        deliverables.extend(["tests/test_core.py", "README.md"])
+        deliverables.extend([test_rel_path, "README.md"])
 
         healing_note = f" (Self-Healing resolved {healing_count} issues)" if healing_count > 0 else ""
         record_standup_log(

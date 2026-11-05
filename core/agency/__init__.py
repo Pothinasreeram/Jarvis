@@ -16,6 +16,7 @@ from .client_intake import (
     get_discovery_questions,
     generate_prd_content,
     initiate_client_project,
+    detect_archetype,
 )
 from .orchestrator import (
     start_project_intake,
@@ -37,6 +38,7 @@ __all__ = [
     "get_discovery_questions",
     "generate_prd_content",
     "initiate_client_project",
+    "detect_archetype",
     "start_project_intake",
     "approve_project_prd",
     "execute_sprint_stage",

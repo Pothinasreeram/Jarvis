@@ -151,6 +151,8 @@ class TestAgentExecution(unittest.TestCase):
         self.assertEqual(detect_archetype("Create a REST API for banking"), "rest_api")
         self.assertEqual(detect_archetype("A background daemon service"), "daemon_worker")
         self.assertEqual(detect_archetype("CLI tool to parse csv"), "cli_tool")
+        self.assertEqual(detect_archetype("Build a modern website for photography"), "web_application")
+        self.assertEqual(detect_archetype("Create a web app landing page with HTML and CSS"), "web_application")
 
     def test_self_healing_qa_loop(self):
         models_code = DeveloperAgent.generate_models_code("SelfHealingTest")
@@ -201,6 +203,32 @@ class TestOrchestratorLifecycle(unittest.TestCase):
         self.assertIsNotNone(standup_text)
         self.assertIn("engineering front", standup_text.lower())
 
+    def test_web_application_full_lifecycle(self):
+        p_name = f"WebStudio_{int(time.time() * 1000)}"
+        custom_answers = {
+            "platform": "Responsive Web Application",
+            "core_features": "Interactive portfolio, gallery, and contact form"
+        }
+        proj = start_project_intake(p_name, "Build an interactive agency website", custom_answers)
+        self.assertEqual(proj["status"], "prd_ready")
+        p_id = proj["project_id"]
+
+        # Approve and advance to completion
+        approve_project_prd(p_id)
+        res = advance_project_to_completion(p_id)
+        self.assertTrue(res["success"])
+        self.assertEqual(res["status"], "completed")
+
+        # Verify artifacts exist on disk
+        root = proj["root_dir"]
+        self.assertTrue(os.path.exists(os.path.join(root, "templates", "index.html")))
+        self.assertTrue(os.path.exists(os.path.join(root, "static", "css", "style.css")))
+        self.assertTrue(os.path.exists(os.path.join(root, "static", "js", "main.js")))
+        self.assertTrue(os.path.exists(os.path.join(root, "app.py")))
+        self.assertTrue(os.path.exists(os.path.join(root, "run.bat")))
+        self.assertTrue(os.path.exists(os.path.join(root, "tests", "test_web.py")))
+        self.assertTrue(os.path.exists(os.path.join(root, "README.md")))
+
 
 class TestAgencySkillRouting(unittest.TestCase):
     """Test skill keywords and intent detection."""
@@ -216,6 +244,28 @@ class TestAgencySkillRouting(unittest.TestCase):
     def test_standup_execution(self):
         reply = agency_skill.execute("project standup")
         self.assertTrue(len(reply) > 10)
+
+    def test_interactive_discovery_interview_flow(self):
+        # 1. User says "assemble team to build a website"
+        agency_skill.ACTIVE_INTAKE_SESSION = None
+        reply = agency_skill.execute("assemble team to build a website")
+        self.assertIn("initiated discovery", reply)
+        self.assertIn("what pages, design style, or features do you want", reply)
+        self.assertIsNotNone(agency_skill.ACTIVE_INTAKE_SESSION)
+        self.assertEqual(agency_skill.ACTIVE_INTAKE_SESSION["stage"], "discovery_interview")
+
+        # 2. User explains their ideas!
+        reply2 = agency_skill.execute("I need a dark cyan portfolio with photography gallery and booking form")
+        self.assertIn("Client requirements captured", reply2)
+        self.assertIn("photography gallery and booking form", reply2)
+        self.assertEqual(agency_skill.ACTIVE_INTAKE_SESSION["stage"], "awaiting_approval")
+
+        # 3. User says "approve PRD"
+        reply3 = agency_skill.execute("approve PRD")
+        self.assertIn("approved", reply3.lower())
+
+        # Reset session
+        agency_skill.ACTIVE_INTAKE_SESSION = None
 
 
 if __name__ == "__main__":

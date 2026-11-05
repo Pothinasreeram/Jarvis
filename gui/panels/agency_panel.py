@@ -157,27 +157,44 @@ class AgencyPanel:
             curr_sprint = top["current_sprint"]
             total_sprints = top["total_sprints"]
 
+            # Archetype detection
+            meta = top.get("metadata", {})
+            archetype = meta.get("archetype", "") if isinstance(meta, dict) else ""
+
             # Format status badge
             if status == "COMPLETED":
                 self.project_lbl.configure(text=f"PROJECT: {p_name[:16]}", text_color=GREEN_ACCENT)
                 self.sprint_badge.configure(text="5/5 COMPLETED ✔", text_color=GREEN_ACCENT)
                 self.agent_lbl.configure(text="QA & DevOps: All automated tests verified (100%).")
-                self.milestone_lbl.configure(text=f"Deliverables ready in projects/{top['name']}/")
+                if archetype == "web_application":
+                    self.milestone_lbl.configure(text=f"Live Web App: Launch run.bat (http://localhost:5000)")
+                else:
+                    self.milestone_lbl.configure(text=f"Deliverables ready in projects/{top['name']}/")
             else:
                 self.project_lbl.configure(text=f"PROJECT: {p_name[:16]}", text_color=CYAN_BRIGHT)
                 self.sprint_badge.configure(text=f"SPRINT {curr_sprint}/{total_sprints} ({status})", text_color=CYAN_BRIGHT)
                 
-                # Role mapping
-                role_map = {
-                    1: "System Architect: Designing ARCHITECTURE.md & data contracts",
-                    2: "Database Engineer: Building SQLite models & persistence",
-                    3: "Backend Developer: Constructing domain service & export logic",
-                    4: "Full-Stack Developer: Packaging CLI/GUI interface & launchers",
-                    5: "Lead QA Engineer: Executing automated test suite with self-healing"
-                }
+                # Archetype-aware role mapping
+                if archetype == "web_application":
+                    role_map = {
+                        1: "System Architect: Designing ARCHITECTURE.md & web topology",
+                        2: "Frontend Engineer: Building semantic HTML5 & responsive CSS3",
+                        3: "Full-Stack Developer: Client JavaScript & Python HTTP server",
+                        4: "DevOps Engineer: Packaging 1-click browser launcher (run.bat)",
+                        5: "QA Automation Lead: Live socket tests, DOM audits & delivery"
+                    }
+                else:
+                    role_map = {
+                        1: "System Architect: Designing ARCHITECTURE.md & data contracts",
+                        2: "Database Engineer: Building SQLite models & persistence",
+                        3: "Backend Developer: Constructing domain service & export logic",
+                        4: "Full-Stack Developer: Packaging CLI/GUI interface & launchers",
+                        5: "Lead QA Engineer: Executing automated test suite with self-healing"
+                    }
                 active_role = role_map.get(curr_sprint, "Agile Engineering Team")
                 self.agent_lbl.configure(text=f"Active: {active_role}")
                 self.milestone_lbl.configure(text=f"Status: Sprint {curr_sprint} execution active.")
 
         except Exception as e:
             print(f"[AGENCY PANEL ERROR]: {e}")
+
