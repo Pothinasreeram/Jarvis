@@ -203,6 +203,21 @@ class TestAgentExecution(unittest.TestCase):
         self.assertTrue(result["success"])
         self.assertGreaterEqual(result["tests_run"], 4)
 
+    def test_gui_desktop_and_rest_api_code_synthesis(self):
+        import ast
+        desktop_code = DeveloperAgent.generate_app_code("TaskMaster", archetype="gui_desktop")
+        self.assertIn("ApplicationGUI", desktop_code)
+        self.assertIn("Treeview", desktop_code)
+        self.assertIn("export_csv", desktop_code)
+        ast.parse(desktop_code)
+
+        api_code = DeveloperAgent.generate_app_code("DataVault", archetype="rest_api")
+        self.assertIn("APIRequestHandler", api_code)
+        self.assertIn("/api/health", api_code)
+        self.assertIn("/api/export", api_code)
+        self.assertIn("HTML_DOCS", api_code)
+        ast.parse(api_code)
+
 
 class TestOrchestratorLifecycle(unittest.TestCase):
     """Test full multi-sprint lifecycle and Gate sign-off."""

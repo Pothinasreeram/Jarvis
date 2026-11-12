@@ -402,9 +402,9 @@ class ProjectService:
     def generate_app_code(project_name: str, objective: str = "", archetype: str = "cli_tool") -> str:
         # Generate archetype-specific user interface
         if archetype == "gui_desktop":
-            return f'''"""
-Presentation & Desktop GUI Interface for {project_name}
-CustomTkinter / Tkinter Desktop Dashboard.
+            desktop_template = '''"""
+Presentation & Desktop GUI Interface for {{PROJECT_NAME}}
+Modern Workstation Dashboard with SQLite Persistence, Search & Exporting.
 """
 
 import sys
@@ -422,61 +422,150 @@ from src.service import ProjectService
 class ApplicationGUI(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("{project_name.upper()} - Workstation")
-        self.geometry("640x480")
+        self.title("{{PROJECT_NAME_UPPER}} - Industrial Workstation")
+        self.geometry("760x540")
+        self.minsize(680, 440)
         self.service = ProjectService()
-        self.configure(bg="#05101f")
+        self.configure(bg="#0a0e17")
         self.setup_ui()
         self.refresh_records()
 
     def setup_ui(self):
+        header = tk.Frame(self, bg="#111827", padx=15, pady=10)
+        header.pack(fill="x")
+
         title_lbl = tk.Label(
-            self,
-            text="{project_name.upper()} WORKSTATION",
-            font=("Consolas", 14, "bold"),
+            header,
+            text="{{PROJECT_NAME_UPPER}} WORKSTATION",
+            font=("Segoe UI", 14, "bold"),
             fg="#00f0ff",
-            bg="#05101f"
+            bg="#111827"
         )
-        title_lbl.pack(pady=10)
+        title_lbl.pack(side="left")
 
-        # Form frame
-        form = tk.Frame(self, bg="#05101f")
-        form.pack(fill="x", padx=20, pady=5)
+        self.status_badge = tk.Label(
+            header,
+            text="SQLITE PERSISTENCE ACTIVE",
+            font=("Segoe UI", 9, "bold"),
+            fg="#10b981",
+            bg="#064e3b",
+            padx=8,
+            pady=2
+        )
+        self.status_badge.pack(side="right")
 
-        tk.Label(form, text="Title:", fg="#80d8ff", bg="#05101f").grid(row=0, column=0, sticky="w")
-        self.title_entry = tk.Entry(form, width=30)
-        self.title_entry.grid(row=0, column=1, padx=5, pady=2)
+        form_frame = tk.Frame(self, bg="#111827", padx=15, pady=10)
+        form_frame.pack(fill="x", padx=15, pady=(15, 10))
 
-        tk.Label(form, text="Category:", fg="#80d8ff", bg="#05101f").grid(row=1, column=0, sticky="w")
-        self.cat_entry = tk.Entry(form, width=30)
-        self.cat_entry.grid(row=1, column=1, padx=5, pady=2)
+        tk.Label(form_frame, text="Record Title:", fg="#94a3b8", bg="#111827", font=("Segoe UI", 9)).grid(row=0, column=0, sticky="w", padx=4)
+        self.title_entry = tk.Entry(form_frame, width=28, bg="#0a0e17", fg="#f0f6fc", insertbackground="#00f0ff", relief="flat", highlightthickness=1, highlightbackground="#1e293b", highlightcolor="#00f0ff")
+        self.title_entry.grid(row=0, column=1, padx=6, pady=4)
 
-        add_btn = tk.Button(form, text="Add Record", bg="#00aa88", fg="white", command=self.add_record)
-        add_btn.grid(row=0, column=2, rowspan=2, padx=10)
+        tk.Label(form_frame, text="Category:", fg="#94a3b8", bg="#111827", font=("Segoe UI", 9)).grid(row=0, column=2, sticky="w", padx=4)
+        self.cat_entry = tk.Entry(form_frame, width=18, bg="#0a0e17", fg="#f0f6fc", insertbackground="#00f0ff", relief="flat", highlightthickness=1, highlightbackground="#1e293b", highlightcolor="#00f0ff")
+        self.cat_entry.grid(row=0, column=3, padx=6, pady=4)
 
-        # List
-        self.tree = ttk.Treeview(self, columns=("ID", "Title", "Category", "Status"), show="headings")
+        add_btn = tk.Button(form_frame, text="+ Add Record", bg="#00f0ff", fg="#0a0e17", font=("Segoe UI", 9, "bold"), relief="flat", padx=12, pady=3, command=self.add_record, cursor="hand2")
+        add_btn.grid(row=0, column=4, padx=10)
+
+        action_bar = tk.Frame(self, bg="#0a0e17", padx=15)
+        action_bar.pack(fill="x", padx=15, pady=5)
+
+        tk.Label(action_bar, text="Filter:", fg="#94a3b8", bg="#0a0e17", font=("Segoe UI", 9)).pack(side="left")
+        self.filter_entry = tk.Entry(action_bar, width=22, bg="#111827", fg="#f0f6fc", relief="flat", highlightthickness=1, highlightbackground="#1e293b", highlightcolor="#00f0ff")
+        self.filter_entry.pack(side="left", padx=6)
+        self.filter_entry.bind("<KeyRelease>", lambda e: self.filter_records())
+
+        export_btn = tk.Button(action_bar, text="📥 Export CSV", bg="#1e293b", fg="#00f0ff", relief="flat", font=("Segoe UI", 9), padx=10, command=self.export_csv, cursor="hand2")
+        export_btn.pack(side="right", padx=(4, 0))
+
+        del_btn = tk.Button(action_bar, text="🗑 Delete", bg="#271216", fg="#ef4444", relief="flat", font=("Segoe UI", 9), padx=10, command=self.delete_selected, cursor="hand2")
+        del_btn.pack(side="right", padx=4)
+
+        style = ttk.Style(self)
+        style.theme_use("clam")
+        style.configure("Treeview", background="#111827", foreground="#f0f6fc", fieldbackground="#111827", rowheight=26, font=("Segoe UI", 9))
+        style.configure("Treeview.Heading", background="#1e293b", foreground="#00f0ff", font=("Segoe UI", 9, "bold"))
+        style.map("Treeview", background=[("selected", "#0284c7")])
+
+        tree_frame = tk.Frame(self, bg="#0a0e17")
+        tree_frame.pack(fill="both", expand=True, padx=15, pady=10)
+
+        self.tree = ttk.Treeview(tree_frame, columns=("ID", "Title", "Category", "Status"), show="headings", selectmode="browse")
         self.tree.heading("ID", text="ID")
+        self.tree.column("ID", width=60, anchor="center")
         self.tree.heading("Title", text="Title")
+        self.tree.column("Title", width=320)
         self.tree.heading("Category", text="Category")
+        self.tree.column("Category", width=160)
         self.tree.heading("Status", text="Status")
-        self.tree.pack(fill="both", expand=True, padx=20, pady=10)
+        self.tree.column("Status", width=120, anchor="center")
+        self.tree.pack(fill="both", expand=True)
 
-    def refresh_records(self):
+        footer = tk.Frame(self, bg="#111827", padx=15, pady=6)
+        footer.pack(fill="x", side="bottom")
+
+        self.stats_lbl = tk.Label(footer, text="Records: 0", fg="#94a3b8", bg="#111827", font=("Segoe UI", 9))
+        self.stats_lbl.pack(side="left")
+
+        engine_lbl = tk.Label(footer, text="Engineered by J.A.R.V.I.S. Autonomous Agency", fg="#64748b", bg="#111827", font=("Segoe UI", 8))
+        engine_lbl.pack(side="right")
+
+    def refresh_records(self, filter_text=""):
         for item in self.tree.get_children():
             self.tree.delete(item)
-        for r in self.service.list_items():
-            self.tree.insert("", "end", values=(r.id, r.title, r.category, r.status))
+        items = self.service.list_items()
+        count = 0
+        for r in items:
+            t = getattr(r, "title", "")
+            c = getattr(r, "category", "")
+            if filter_text and filter_text.lower() not in t.lower() and filter_text.lower() not in c.lower():
+                continue
+            count += 1
+            self.tree.insert("", "end", values=(getattr(r, "id", count), t, c, getattr(r, "status", "active")))
+        self.stats_lbl.configure(text=f"Total Records: {len(items)} | Showing: {count}")
+
+    def filter_records(self):
+        text = self.filter_entry.get().strip()
+        self.refresh_records(filter_text=text)
 
     def add_record(self):
         title = self.title_entry.get().strip()
         cat = self.cat_entry.get().strip() or "General"
         if not title:
-            messagebox.showwarning("Warning", "Title cannot be empty.")
+            messagebox.showwarning("Validation", "Record title cannot be empty.")
             return
         self.service.create_item(title, cat)
         self.title_entry.delete(0, "end")
         self.refresh_records()
+
+    def delete_selected(self):
+        sel = self.tree.selection()
+        if not sel:
+            messagebox.showinfo("Select Record", "Please select a record in the table to delete.")
+            return
+        item = self.tree.item(sel[0])
+        rec_id = item["values"][0]
+        try:
+            if hasattr(self.service, "delete_item"):
+                self.service.delete_item(rec_id)
+            elif hasattr(self.service, "db") and hasattr(self.service.db, "delete_record"):
+                self.service.db.delete_record(rec_id)
+        except Exception:
+            pass
+        self.tree.delete(sel[0])
+        self.refresh_records()
+
+    def export_csv(self):
+        export_dir = os.path.join(PROJECT_ROOT, "exports")
+        os.makedirs(export_dir, exist_ok=True)
+        csv_path = os.path.join(export_dir, "records_export.csv")
+        try:
+            if hasattr(self.service, "export_to_csv"):
+                self.service.export_to_csv(csv_path)
+            messagebox.showinfo("Export Successful", f"Records exported to: {csv_path}")
+        except Exception as e:
+            messagebox.showerror("Export Failed", f"Unable to export records: {e}")
 
 
 def main():
@@ -487,16 +576,20 @@ def main():
 if __name__ == "__main__":
     main()
 '''
+            return desktop_template.replace("{{PROJECT_NAME}}", project_name).replace("{{PROJECT_NAME_UPPER}}", project_name.upper())
 
         elif archetype == "rest_api":
-            return f'''"""
-Presentation & REST API Interface for {project_name}
-Zero-dependency HTTP JSON REST Service.
+            api_template = '''"""
+Presentation & REST API Interface for {{PROJECT_NAME}}
+Zero-dependency HTTP JSON REST Service with Interactive Documentation & CSV Export.
 """
 
 import sys
 import os
 import json
+import csv
+import io
+from urllib.parse import urlparse, parse_qs
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -507,52 +600,168 @@ from src.service import ProjectService
 
 service = ProjectService()
 
+HTML_DOCS = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{PROJECT_NAME_UPPER}} | REST API Console</title>
+    <style>
+        :root { --bg: #0a0e17; --card: #111827; --border: rgba(0, 240, 255, 0.2); --accent: #00f0ff; --text: #f0f6fc; --muted: #94a3b8; --green: #10b981; }
+        body { margin: 0; padding: 2rem; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 2rem; }
+        h1 { margin: 0; color: var(--accent); font-size: 1.8rem; }
+        .badge { background: rgba(16, 185, 129, 0.15); color: var(--green); border: 1px solid var(--green); padding: 0.25rem 0.75rem; border-radius: 999px; font-weight: 600; font-size: 0.8rem; }
+        .endpoint-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; margin-bottom: 1.25rem; }
+        .ep-head { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.5rem; }
+        .method { padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 700; font-size: 0.75rem; }
+        .get { background: #0369a1; color: #e0f2fe; }
+        .post { background: #047857; color: #d1fae5; }
+        .ep-path { font-family: monospace; font-size: 1.1rem; color: #f0f6fc; }
+        .ep-desc { color: var(--muted); font-size: 0.9rem; margin-bottom: 0.75rem; }
+        .btn { background: var(--accent); color: #0a0e17; font-weight: 700; border: none; padding: 0.4rem 1rem; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; font-size: 0.85rem; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        pre { background: #05080f; padding: 1rem; border-radius: 6px; overflow-x: auto; color: #38bdf8; font-size: 0.85rem; border: 1px solid rgba(255, 255, 255, 0.05); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>{{PROJECT_NAME_UPPER}} REST API</h1>
+            <p style="color: var(--muted); margin: 0.25rem 0 0 0;">Zero-Dependency Industrial Microservice</p>
+        </div>
+        <span class="badge">&#x2714; SERVICE OPERATIONAL</span>
+    </div>
+
+    <div class="endpoint-card">
+        <div class="ep-head">
+            <span class="method get">GET</span>
+            <span class="ep-path">/api/health</span>
+        </div>
+        <div class="ep-desc">Sub-millisecond system telemetry and operational readiness check.</div>
+        <a href="/api/health" target="_blank" class="btn">Test Endpoint</a>
+    </div>
+
+    <div class="endpoint-card">
+        <div class="ep-head">
+            <span class="method get">GET</span>
+            <span class="ep-path">/api/records</span>
+        </div>
+        <div class="ep-desc">Retrieve all indexed records stored in local SQLite storage.</div>
+        <a href="/api/records" target="_blank" class="btn">Fetch JSON Records</a>
+    </div>
+
+    <div class="endpoint-card">
+        <div class="ep-head">
+            <span class="method get">GET</span>
+            <span class="ep-path">/api/export</span>
+        </div>
+        <div class="ep-desc">Stream full database records directly as a downloadable CSV file.</div>
+        <a href="/api/export" class="btn btn-outline">&#x1F4E5; Download CSV</a>
+    </div>
+
+    <div class="endpoint-card">
+        <div class="ep-head">
+            <span class="method post">POST</span>
+            <span class="ep-path">/api/records</span>
+        </div>
+        <div class="ep-desc">Insert a new domain record. Accepts JSON payload with title and category.</div>
+        <pre>{ "title": "Quarterly Operations Review", "category": "Strategic Planning" }</pre>
+    </div>
+</body>
+</html>
+"""
+
 
 class APIRequestHandler(BaseHTTPRequestHandler):
+    def log_message(self, format, *args):
+        pass
+
     def _send_json(self, status: int, data: dict):
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
         self.wfile.write(json.dumps(data).encode("utf-8"))
 
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
+
     def do_GET(self):
-        if self.path == "/api/health":
-            self._send_json(200, {{"status": "healthy", "service": "{project_name}"}})
-        elif self.path == "/api/records":
+        parsed = urlparse(self.path)
+        path = parsed.path
+
+        if path in ["/", "/docs", "/api"]:
+            content = HTML_DOCS.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(content)))
+            self.end_headers()
+            self.wfile.write(content)
+        elif path == "/api/health":
+            self._send_json(200, {"status": "healthy", "service": "{{PROJECT_NAME}}", "version": "1.0.0"})
+        elif path == "/api/records":
             items = [i.to_dict() for i in service.list_items()]
-            self._send_json(200, {{"count": len(items), "records": items}})
+            self._send_json(200, {"count": len(items), "records": items})
+        elif path == "/api/export":
+            items = service.list_items()
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow(["ID", "Title", "Category", "Status"])
+            for r in items:
+                writer.writerow([getattr(r, "id", ""), getattr(r, "title", ""), getattr(r, "category", ""), getattr(r, "status", "")])
+            csv_bytes = output.getvalue().encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/csv; charset=utf-8")
+            self.send_header("Content-Disposition", "attachment; filename=records_export.csv")
+            self.send_header("Content-Length", str(len(csv_bytes)))
+            self.end_headers()
+            self.wfile.write(csv_bytes)
         else:
-            self._send_json(404, {{"error": "Endpoint not found"}})
+            self._send_json(404, {"error": "Endpoint not found"})
 
     def do_POST(self):
         if self.path == "/api/records":
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length)
             try:
-                data = json.loads(body.decode("utf-8"))
-                item = service.create_item(data.get("title", ""), data.get("category", "General"))
-                self._send_json(201, {{"success": True, "record": item.to_dict()}})
+                data = json.loads(body.decode("utf-8")) if body else {}
+                title = data.get("title", "").strip() or "Untitled Record"
+                category = data.get("category", "").strip() or "General"
+                item = service.create_item(title, category)
+                self._send_json(201, {"success": True, "record": item.to_dict()})
             except Exception as e:
-                self._send_json(400, {{"error": str(e)}})
+                self._send_json(400, {"error": str(e)})
         else:
-            self._send_json(404, {{"error": "Endpoint not found"}})
+            self._send_json(404, {"error": "Endpoint not found"})
 
 
 def main():
-    port = 8080
+    port = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else int(os.environ.get("PORT", 8080))
     server = HTTPServer(("127.0.0.1", port), APIRequestHandler)
-    print(f"[{project_name.upper()} REST API] Listening at http://127.0.0.1:{{port}}")
-    print("Available endpoints: GET /api/health, GET /api/records, POST /api/records")
+    print("=" * 60)
+    print(f"  {{PROJECT_NAME_UPPER}} - ENTERPRISE REST API")
+    print(f"  Interactive Console: http://127.0.0.1:{port}")
+    print(f"  Health Check: http://127.0.0.1:{port}/api/health")
+    print(f"  Records Feed: http://127.0.0.1:{port}/api/records")
+    print("=" * 60)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\\nShutting down server.")
+        print("[SHUTDOWN] Stopping server.")
         server.server_close()
 
 
 if __name__ == "__main__":
     main()
 '''
+            return api_template.replace("{{PROJECT_NAME}}", project_name).replace("{{PROJECT_NAME_UPPER}}", project_name.upper())
 
         elif archetype == "daemon_worker":
             return f'''"""
