@@ -11,6 +11,11 @@ from .db import (
     get_sprints_for_project,
     get_artifacts_for_project,
     get_latest_standup_for_active_projects,
+    find_available_port,
+    is_port_in_use,
+    set_project_runtime,
+    get_project_runtime,
+    stop_project_process,
 )
 from .client_intake import (
     get_discovery_questions,
@@ -36,6 +41,11 @@ __all__ = [
     "get_sprints_for_project",
     "get_artifacts_for_project",
     "get_latest_standup_for_active_projects",
+    "find_available_port",
+    "is_port_in_use",
+    "set_project_runtime",
+    "get_project_runtime",
+    "stop_project_process",
     "get_discovery_questions",
     "generate_prd_content",
     "initiate_client_project",

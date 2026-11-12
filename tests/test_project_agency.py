@@ -28,6 +28,10 @@ from core.agency.db import (
     get_artifacts_for_project,
     record_standup_log,
     get_latest_standup_for_active_projects,
+    find_available_port,
+    set_project_runtime,
+    get_project_runtime,
+    stop_project_process,
 )
 from core.agency.client_intake import (
     get_discovery_questions,
@@ -82,6 +86,31 @@ class TestAgencyDatabase(unittest.TestCase):
         record_standup_log(p_id, 1, "Architect", "Designed blueprint", "Proceed to data layer")
         standups = get_latest_standup_for_active_projects()
         self.assertTrue(isinstance(standups, list))
+
+    def test_process_lifecycle_and_ports(self):
+        p_name = f"Test_Runtime_{int(time.time() * 1000)}"
+        p_id = create_project_record(p_name, "Runtime management test", "C:\\DummyPath")
+        port = find_available_port(5000)
+        self.assertGreaterEqual(port, 5000)
+
+        # Set runtime with a real temporary subprocess
+        import subprocess, sys
+        proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+        try:
+            set_project_runtime(p_id, port=port, pid=proc.pid)
+            runtime = get_project_runtime(p_id)
+            self.assertEqual(runtime.get("port"), port)
+            self.assertEqual(runtime.get("pid"), proc.pid)
+            self.assertEqual(runtime.get("status"), "running")
+
+            # Stop process
+            res = stop_project_process(p_id)
+            self.assertTrue(res["success"])
+            runtime_after = get_project_runtime(p_id)
+            self.assertIsNone(runtime_after.get("pid"))
+        finally:
+            if proc.poll() is None:
+                proc.kill()
 
 
 class TestClientIntakeAndPRD(unittest.TestCase):
@@ -231,6 +260,17 @@ class TestOrchestratorLifecycle(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(root, "tests", "test_web.py")))
         self.assertTrue(os.path.exists(os.path.join(root, "README.md")))
 
+        # Verify modern web baseline standards compliance
+        with open(os.path.join(root, "templates", "index.html"), "r", encoding="utf-8") as f:
+            html = f.read().lower()
+        self.assertIn("<dialog", html)
+        self.assertIn("inquirymodal", html)
+
+        with open(os.path.join(root, "static", "css", "style.css"), "r", encoding="utf-8") as f:
+            css = f.read()
+        self.assertIn(":has(", css)
+        self.assertIn("::backdrop", css)
+
     def test_change_request_workflow(self):
         p_name = f"WebCR_{int(time.time() * 1000)}"
         custom_answers = {
@@ -268,6 +308,22 @@ class TestOrchestratorLifecycle(unittest.TestCase):
             css = f.read()
         self.assertIn("#a855f7", css)
 
+        # 4. FAQ Section Change Request
+        cr4 = apply_change_request(p_id, "add FAQ accordion to the website")
+        self.assertTrue(cr4["success"])
+        self.assertTrue(cr4["qa_passed"])
+        with open(html_file, "r", encoding="utf-8") as f:
+            html = f.read()
+        self.assertIn("faq", html.lower())
+
+        # 5. Universal Dynamic Section Synthesis (e.g. Roadmap)
+        cr5 = apply_change_request(p_id, "add roadmap section to the website")
+        self.assertTrue(cr5["success"])
+        self.assertTrue(cr5["qa_passed"])
+        with open(html_file, "r", encoding="utf-8") as f:
+            html = f.read()
+        self.assertIn("roadmap", html.lower())
+
 
 class TestAgencySkillRouting(unittest.TestCase):
     """Test skill keywords and intent detection."""
@@ -281,9 +337,32 @@ class TestAgencySkillRouting(unittest.TestCase):
         self.assertTrue(agency_skill.can_handle("list projects"))
         self.assertTrue(agency_skill.can_handle("launch website"))
         self.assertTrue(agency_skill.can_handle("preview project"))
+        self.assertTrue(agency_skill.can_handle("stop website"))
+        self.assertTrue(agency_skill.can_handle("stop server"))
         self.assertTrue(agency_skill.can_handle("add testimonials to website"))
         self.assertTrue(agency_skill.can_handle("add pricing table to the project"))
+        self.assertTrue(agency_skill.can_handle("add FAQ section"))
+        self.assertTrue(agency_skill.can_handle("add team section"))
         self.assertTrue(agency_skill.can_handle("change website theme"))
+
+    def test_session_hijacking_guard(self):
+        # When an interview session is active
+        agency_skill.ACTIVE_INTAKE_SESSION = {
+            "project_name": "TestSite",
+            "stage": "discovery_interview",
+            "timestamp": time.time()
+        }
+        try:
+            # Common global commands must NOT be hijacked
+            self.assertFalse(agency_skill.can_handle("what is the weather today"))
+            self.assertFalse(agency_skill.can_handle("what time is it"))
+            self.assertFalse(agency_skill.can_handle("play music"))
+            self.assertFalse(agency_skill.can_handle("volume up"))
+
+            # Requirements input MUST be handled
+            self.assertTrue(agency_skill.can_handle("I want a dark modern photography portfolio"))
+        finally:
+            agency_skill.ACTIVE_INTAKE_SESSION = None
 
     def test_standup_execution(self):
         reply = agency_skill.execute("project standup")

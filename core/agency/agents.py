@@ -719,6 +719,7 @@ if __name__ == "__main__":
                 <p class="hero-subtitle">{obj_display}</p>
                 <div class="hero-actions">
                     <a href="#features" class="btn btn-primary">Explore Platform</a>
+                    <button type="button" id="openModalBtn" class="btn btn-outline">&#x26A1; Direct Inquiry</button>
                     <a href="#contact" class="btn btn-outline">Get in Touch</a>
                 </div>
             </div>
@@ -804,6 +805,30 @@ if __name__ == "__main__":
             <p class="agency-credit">Crafted by J.A.R.V.I.S. Autonomous Engineering Agency</p>
         </div>
     </footer>
+
+    <!-- Modern Native Dialog (Baseline Standards) -->
+    <dialog id="inquiryModal" class="native-dialog" aria-labelledby="dialogTitle">
+        <div class="dialog-header">
+            <h3 id="dialogTitle" class="dialog-title">Direct Priority Channel</h3>
+            <button type="button" id="closeModalBtn" class="btn-close" aria-label="Close dialog">&#x2715;</button>
+        </div>
+        <p class="dialog-subtitle">Transmit an encrypted transmission directly to the engineering team.</p>
+        <form id="modalContactForm" class="contact-form modal-form">
+            <div class="form-group">
+                <label for="modalName">Your Name</label>
+                <input type="text" id="modalName" name="name" required placeholder="Agent Romanoff" autocomplete="name">
+            </div>
+            <div class="form-group">
+                <label for="modalEmail">Email Address</label>
+                <input type="email" id="modalEmail" name="email" required placeholder="natasha@starkindustries.com" autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label for="modalMessage">Transmission Message</label>
+                <textarea id="modalMessage" name="message" rows="3" required placeholder="Describe your operational requirement..."></textarea>
+            </div>
+            <button type="submit" id="modalSubmitBtn" class="btn btn-primary btn-block">Transmit Transmission</button>
+        </form>
+    </dialog>
 
     <!-- Toast Notifications -->
     <div id="toastContainer" class="toast-container"></div>
@@ -1306,6 +1331,78 @@ body {
     font-weight: 600;
 }
 
+/* Modern Native Dialog & Backdrop (Web Platform Baseline) */
+dialog.native-dialog {
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-radius: var(--radius-lg);
+    padding: 2.25rem;
+    max-width: 520px;
+    width: 90%;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 35px var(--accent-glow);
+    margin: auto;
+    position: fixed;
+    inset: 0;
+}
+
+dialog.native-dialog::backdrop {
+    background: rgba(10, 14, 23, 0.85);
+    backdrop-filter: blur(8px);
+}
+
+.dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.dialog-title {
+    font-size: 1.4rem;
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.dialog-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+}
+
+.btn-close {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.4rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0.25rem;
+    transition: var(--transition);
+}
+
+.btn-close:hover {
+    color: var(--accent);
+    transform: scale(1.15);
+}
+
+/* Modern Relational Selectors (Baseline 2023 :has) */
+.feature-card:has(:hover) {
+    border-color: var(--accent);
+    box-shadow: 0 8px 30px var(--accent-glow);
+}
+
+.form-group:has(input:focus-visible),
+.form-group:has(textarea:focus-visible) {
+    border-color: var(--accent);
+}
+
+/* Modern Accessible Focus States */
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
 /* Toast */
 .toast-container {
     position: fixed;
@@ -1373,7 +1470,83 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 4000);
     }
 
-    // 2. Contact Form Dynamic Submission via Fetch API
+    // 2. Modern Native Dialog Management (Baseline Standards)
+    const modal = document.getElementById("inquiryModal");
+    const openModalBtn = document.getElementById("openModalBtn");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+    const modalContactForm = document.getElementById("modalContactForm");
+
+    if (modal && openModalBtn) {
+        openModalBtn.addEventListener("click", () => {
+            modal.showModal();
+        });
+    }
+
+    if (modal && closeModalBtn) {
+        closeModalBtn.addEventListener("click", () => {
+            modal.close();
+        });
+    }
+
+    if (modal) {
+        modal.addEventListener("click", (e) => {
+            const rect = modal.getBoundingClientRect();
+            const isInDialog = (
+                rect.top <= e.clientY &&
+                e.clientY <= rect.top + rect.height &&
+                rect.left <= e.clientX &&
+                e.clientX <= rect.left + rect.width
+            );
+            if (!isInDialog) {
+                modal.close();
+            }
+        });
+    }
+
+    if (modalContactForm) {
+        modalContactForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            if (!modalContactForm.checkValidity()) {
+                modalContactForm.reportValidity();
+                return;
+            }
+            const modalSubmitBtn = document.getElementById("modalSubmitBtn");
+            const originalText = modalSubmitBtn ? modalSubmitBtn.textContent : "Sending";
+            if (modalSubmitBtn) {
+                modalSubmitBtn.disabled = true;
+                modalSubmitBtn.textContent = "Transmitting...";
+            }
+            const payload = {
+                name: document.getElementById("modalName").value.trim(),
+                email: document.getElementById("modalEmail").value.trim(),
+                message: document.getElementById("modalMessage").value.trim(),
+            };
+            try {
+                const response = await fetch("/api/contact", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                const resData = await response.json();
+                if (response.ok && resData.success) {
+                    showToast(resData.message || "Transmission transmitted successfully!");
+                    modalContactForm.reset();
+                    if (modal) modal.close();
+                } else {
+                    showToast(resData.error || "Transmission encountered an error.", true);
+                }
+            } catch (err) {
+                showToast("Network fault: " + err.message, true);
+            } finally {
+                if (modalSubmitBtn) {
+                    modalSubmitBtn.disabled = false;
+                    modalSubmitBtn.textContent = originalText;
+                }
+            }
+        });
+    }
+
+    // 3. Contact Form Dynamic Submission via Fetch API
     const contactForm = document.getElementById("contactForm");
     const submitBtn = document.getElementById("submitBtn");
 
@@ -1607,7 +1780,7 @@ def create_server(port: int = 5000) -> HTTPServer:
 
 
 def main():
-    port = 5000
+    port = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else int(os.environ.get("PORT", 5000))
     server = create_server(port)
     print("=" * 60)
     print(f"  {{PROJECT_NAME_UPPER}} - ENTERPRISE FULL-STACK WEB SERVER")
@@ -2184,9 +2357,9 @@ python src/app.py
 """
 
     @staticmethod
-    def generate_launcher(project_name: str, archetype: str = "cli_tool") -> str:
+    def generate_launcher(project_name: str, archetype: str = "cli_tool", port: int = 5000) -> str:
         if archetype == "web_application":
-            return "@echo off\necho Starting " + project_name + " Web Server...\nstart \"\" http://localhost:5000\npython app.py\npause\n"
+            return f"@echo off\necho Starting {project_name} Web Server on port {port}...\nstart \"\" http://localhost:{port}\npython app.py {port}\npause\n"
         return "@echo off\npython src/app.py\npause\n"
 
     @staticmethod

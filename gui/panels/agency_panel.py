@@ -98,6 +98,21 @@ class AgencyPanel:
         )
         self.launch_btn.pack(side="left", padx=(0, 4))
 
+        self.stop_btn = ctk.CTkButton(
+            self.btn_row,
+            text="⏹ Stop",
+            width=65,
+            height=22,
+            font=FONT_SMALL,
+            fg_color="#200d14",
+            hover_color="#3d1422",
+            border_color="#ef4444",
+            border_width=1,
+            text_color="#ef4444",
+            command=self._on_stop_app
+        )
+        self.stop_btn.pack(side="left", padx=(0, 4))
+
         self.test_btn = ctk.CTkButton(
             self.btn_row,
             text="🧪 Run QA",
@@ -175,29 +190,51 @@ class AgencyPanel:
             import webbrowser
             import subprocess
             if os.path.exists(app_py):
+                from core.agency import find_available_port, is_port_in_use, set_project_runtime, get_project_runtime
+                runtime = get_project_runtime(self.active_project_id) if self.active_project_id else {}
+                port = runtime.get("port")
+                if not port or (is_port_in_use(port) and not runtime.get("pid")):
+                    port = find_available_port(5000 + ((self.active_project_id or 1) % 50))
+
                 import urllib.request
                 is_running = False
                 try:
-                    with urllib.request.urlopen("http://127.0.0.1:5000/api/health", timeout=0.3) as resp:
+                    with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/health", timeout=0.3) as resp:
                         is_running = resp.status == 200
                 except Exception:
                     is_running = False
 
                 if not is_running:
-                    subprocess.Popen(
-                        [sys.executable, app_py],
+                    proc = subprocess.Popen(
+                        [sys.executable, app_py, str(port)],
                         cwd=self.active_project_path,
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL,
                         creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
                     )
-                webbrowser.open("http://localhost:5000")
-                self._notify("Web Application launched at http://localhost:5000")
+                    if self.active_project_id:
+                        set_project_runtime(self.active_project_id, port=port, pid=proc.pid)
+                elif self.active_project_id:
+                    set_project_runtime(self.active_project_id, port=port, pid=runtime.get("pid"))
+
+                webbrowser.open(f"http://localhost:{port}")
+                self._notify(f"Web Application launched at http://localhost:{port}")
             elif os.path.exists(run_bat):
                 os.startfile(run_bat)
                 self._notify("Application launched via run.bat.")
         except Exception as e:
             self._notify(f"Launch error: {e}")
+
+    def _on_stop_app(self):
+        if not self.active_project_id:
+            self._notify("No active project selected.")
+            return
+        try:
+            from core.agency import stop_project_process
+            res = stop_project_process(self.active_project_id)
+            self._notify(res.get("message", "Server stopped."))
+        except Exception as e:
+            self._notify(f"Stop error: {e}")
 
     def _on_run_qa(self):
         if not self.active_project_path or not os.path.exists(self.active_project_path):

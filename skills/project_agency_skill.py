@@ -13,6 +13,7 @@ Handles voice and console directives for multi-day agile project management:
 import os
 import sys
 import re
+import time
 import subprocess
 import webbrowser
 from typing import Dict, Any, List, Optional
@@ -27,6 +28,11 @@ from core.agency import (
     get_all_projects,
     detect_archetype,
     apply_change_request,
+    find_available_port,
+    is_port_in_use,
+    set_project_runtime,
+    get_project_runtime,
+    stop_project_process,
 )
 
 skill = {
@@ -38,15 +44,44 @@ skill = {
 ACTIVE_INTAKE_SESSION: Optional[Dict[str, Any]] = None
 
 
+def _resolve_target_project(cmd: str, prefer_web: bool = False) -> Optional[Dict[str, Any]]:
+    """Context-aware project resolver preferring user named projects or recent projects."""
+    projects = get_all_projects()
+    if not projects:
+        return None
+
+    # 1. Exact or partial match with project name in command
+    for p in projects:
+        clean_name = p["name"].replace("_", " ").lower()
+        if clean_name in cmd or p["name"].lower() in cmd:
+            return p
+
+    # 2. Prefer active web application if requested
+    if prefer_web:
+        web_p = next((p for p in projects if os.path.exists(os.path.join(p["root_dir"], "templates", "index.html")) or os.path.exists(os.path.join(p["root_dir"], "app.py"))), None)
+        if web_p:
+            return web_p
+
+    # 3. Default to the most recently updated project (ordered DESC)
+    return projects[0]
+
+
 def can_handle(command: str) -> bool:
     global ACTIVE_INTAKE_SESSION
 
     cmd = command.lower().strip()
     cmd = re.sub(r'^(?:hey\s+|ok\s+|hello\s+)?(?:jarvis)?[\s,:]*(?:please)?[\s,:]*', '', cmd, flags=re.IGNORECASE).strip()
 
-    # If an interview session is active, route all subsequent turns to this skill
+    # Session timeout check (5 minutes) and non-interview command pass-through
     if ACTIVE_INTAKE_SESSION is not None:
-        return True
+        if time.time() - ACTIVE_INTAKE_SESSION.get("timestamp", time.time()) > 300:
+            ACTIVE_INTAKE_SESSION = None
+        else:
+            unrelated = ["weather", "battery", "volume", "music", "play", "pause", "chrome", "search", "calculate", "screenshot", "lock pc"]
+            unrelated_phrases = ["what time", "what is the time", "current time", "whats the time", "what date", "todays date", "time is it"]
+            if any(u in cmd for u in unrelated) or any(p in cmd for p in unrelated_phrases):
+                return False
+            return True
 
     if any(k in cmd for k in ["standup", "sprint", "prd"]):
         return True
@@ -56,14 +91,16 @@ def can_handle(command: str) -> bool:
         return True
     if any(k in cmd for k in ["launch website", "open website", "run website", "preview website", "start website", "preview project", "view website"]):
         return True
-    if any(k in cmd for k in ["add testimonial", "add review", "add pricing", "add plan", "change website", "update website", "modify website", "change theme", "add to website"]):
+    if any(k in cmd for k in ["stop website", "kill website", "close website", "stop server", "kill server", "stop project", "shutdown website"]):
+        return True
+    if any(k in cmd for k in ["add testimonial", "add review", "add pricing", "add plan", "add faq", "add team", "change website", "update website", "modify website", "change theme", "add to website", "add section"]):
         return True
     if "project" in cmd and any(k in cmd for k in [
         "start", "new", "create", "build", "launch", "initiate", "make",
-        "list", "show", "active", "my", "all", "status", "approve", "advance", "run", "proceed", "complete"
+        "list", "show", "active", "my", "all", "status", "approve", "advance", "run", "proceed", "complete", "stop"
     ]):
         return True
-    if any(cmd.startswith(kw) for kw in ["list projects", "show projects", "start project", "create project"]):
+    if any(cmd.startswith(kw) for kw in ["list projects", "show projects", "start project", "create project", "stop project"]):
         return True
     return False
 
@@ -87,9 +124,9 @@ def execute(command: str) -> str:
     # -------------------------------------------------------------
     if ACTIVE_INTAKE_SESSION is not None and ACTIVE_INTAKE_SESSION.get("stage") == "discovery_interview":
         session = ACTIVE_INTAKE_SESSION
-        p_name = session["project_name"]
-        objective = session["objective"]
-        archetype = session["archetype"]
+        p_name = session.get("project_name", "Enterprise_Project")
+        objective = session.get("objective", p_name)
+        archetype = session.get("archetype", "web_application")
 
         # Client describes vision or says "auto-design"
         if any(w in cmd for w in ["auto-design", "auto design", "default", "standard", "you decide", "you choose", "enterprise"]):
@@ -168,61 +205,86 @@ def execute(command: str) -> str:
     # 2.1 Launch Website / Preview Project
     # -------------------------------------------------------------
     if any(k in cmd for k in ["launch website", "open website", "run website", "preview website", "start website", "preview project", "view website"]):
-        projects = get_all_projects()
-        if not projects:
+        target = _resolve_target_project(cmd, prefer_web=True)
+        if not target:
             return "No engineering projects found in the studio queue to preview, Sir."
 
-        target = next((p for p in projects if os.path.exists(os.path.join(p["root_dir"], "app.py"))), projects[0])
         root = target["root_dir"]
         app_py = os.path.join(root, "app.py")
 
-        import urllib.request
-        import webbrowser
-        import subprocess
+        if not os.path.exists(app_py):
+            run_bat = os.path.join(root, "run.bat")
+            if os.path.exists(run_bat):
+                os.startfile(run_bat)
+                name_display = target["name"].replace("_", " ")
+                return f"Launching **{name_display}** application via `run.bat`, Sir."
+            return f"No executable entrypoint found in `projects/{target['name']}`, Sir."
 
+        runtime = get_project_runtime(target["id"])
+        port = runtime.get("port")
+        if not port or (is_port_in_use(port) and not runtime.get("pid")):
+            port = find_available_port(5000 + (target["id"] % 50))
+
+        import urllib.request
         is_running = False
         try:
-            with urllib.request.urlopen("http://127.0.0.1:5000/api/health", timeout=0.3) as resp:
+            with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/health", timeout=0.3) as resp:
                 is_running = resp.status == 200
         except Exception:
             is_running = False
 
-        if not is_running and os.path.exists(app_py):
-            subprocess.Popen(
-                [sys.executable, app_py],
+        if not is_running:
+            proc = subprocess.Popen(
+                [sys.executable, app_py, str(port)],
                 cwd=root,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
             )
+            set_project_runtime(target["id"], port=port, pid=proc.pid)
+        else:
+            set_project_runtime(target["id"], port=port, pid=runtime.get("pid"))
 
-        webbrowser.open("http://localhost:5000")
+        webbrowser.open(f"http://localhost:{port}")
         name_display = target["name"].replace("_", " ")
         return (
             f"Launching **{name_display}** Web Application, Sir.\n\n"
-            f"- **Public Website:** `http://localhost:5000` (Opened in default browser)\n"
-            f"- **Admin Portal:** `http://localhost:5000/admin` (SQLite leads management)\n"
+            f"- **Port:** `{port}`\n"
+            f"- **Public Website:** `http://localhost:{port}` (Opened in default browser)\n"
+            f"- **Admin Portal:** `http://localhost:{port}/admin` (SQLite leads management)\n"
             f"- **Project Directory:** `{root}`"
         )
 
     # -------------------------------------------------------------
-    # 2.2 Iterative Change Requests (Sprint 6+)
+    # 2.2 Stop Project Server / Process
     # -------------------------------------------------------------
-    if any(k in cmd for k in ["add testimonial", "add review", "add pricing", "add plan", "change website", "update website", "modify website", "change theme", "add to website"]):
-        projects = get_all_projects()
-        if not projects:
+    if any(k in cmd for k in ["stop website", "kill website", "close website", "stop server", "kill server", "stop project", "shutdown website"]):
+        target = _resolve_target_project(cmd, prefer_web=True)
+        if not target:
+            return "No active engineering projects found to terminate, Sir."
+
+        res = stop_project_process(target["id"])
+        return res.get("message", f"Server stopped for {target['name']}.")
+
+    # -------------------------------------------------------------
+    # 2.3 Iterative Change Requests (Sprint 6+)
+    # -------------------------------------------------------------
+    if any(k in cmd for k in ["add testimonial", "add review", "add pricing", "add plan", "add faq", "add team", "change website", "update website", "modify website", "change theme", "add to website", "add section"]):
+        target = _resolve_target_project(cmd, prefer_web=True)
+        if not target:
             return "No active projects found to modify, Sir."
 
-        target = next((p for p in projects if os.path.exists(os.path.join(p["root_dir"], "templates", "index.html"))), projects[0])
         res = apply_change_request(target["id"], raw_cmd)
         if res.get("success"):
             name_display = target["name"].replace("_", " ")
             files_updated = ", ".join(res.get("updated_files", []))
+            runtime = get_project_runtime(target["id"])
+            port = runtime.get("port", 5000)
             return (
                 f"Change Request deployed for **{name_display}**, Sir!\n\n"
                 f"- **Updated Files:** {files_updated}\n"
                 f"- **Regression QA:** {res.get('tests_run', 8)} automated tests verified.\n\n"
-                f"You can preview the live updates by saying **'launch website'** or refreshing `http://localhost:5000`."
+                f"You can preview the live updates by saying **'launch website'** or refreshing `http://localhost:{port}`."
             )
         return res.get("message", "Unable to apply change request.")
 

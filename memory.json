@@ -1,11 +1,6 @@
 {
     "conversation": [
         {
-            "user": "android voice print",
-            "assistant": "Sreeram, Android Voice Print is a feature that allows users to unlock their Android device using their voice. It's a biometric authentication method that uses machine learning algorithms to recognize the user's voice and grant access to the device.\n\nTo set up Android Voice Print, you'll need to go to your device's Settings app, then navigate to Security & lock screen > Advanced > Voice recognition. From there, you can follow the prompts to enroll your voice print.\n\nOnce set up, you can use your voice to unlock your device, make purchases, and even authenticate transactions. Android Voice Print is a convenient and secure way to manage your device without needing to physically interact with it.\n\nWould you like me to provide more information on Android Voice Print or help you set it up on your device?",
-            "entity": "bahubali"
-        },
-        {
             "user": "android voice",
             "assistant": "Sreeram, you're interested in Android Voice. As we discussed earlier, Android Voice Print is a feature that allows users to unlock their Android device using their voice. It's a biometric authentication method that uses machine learning algorithms to recognize the user's voice and grant access to the device.\n\nHowever, I believe you might be referring to Google Assistant, which is an AI-powered virtual assistant that comes pre-installed on Android devices. Google Assistant allows users to interact with their device using voice commands, and it can perform a wide range of tasks, such as sending messages, making calls, setting reminders, and more.\n\nWould you like to know more about Google Assistant or how to set it up on your device?",
             "entity": "bahubali"
@@ -49,6 +44,11 @@
             "user": "pin code",
             "assistant": "Sreeram, I don't have any information about a specific pin code. We were in the middle of a conversation about the Baahubali series. Would you like to continue discussing it? If you need help with something else, please let me know and I'll do my best to assist you.\n\nBy the way, if you're looking for a specific pin code, you might want to check your device's settings or contact your service provider for assistance.",
             "entity": "bahubali"
+        },
+        {
+            "user": "i want i want to completely in orange theme e-commerce website",
+            "assistant": "Sreeram, it sounds like you're looking to create an e-commerce website with an orange theme. That's a great idea! I can provide you with some general information on how to approach this project.\n\nTo create an e-commerce website with an orange theme, you'll need to consider the following:\n\n1. Choose an e-commerce platform: You can use platforms like Shopify, WooCommerce, or Magento to create your website.\n2. Select a color scheme: Orange is a vibrant color, so you'll want to choose a palette that complements it. You can use tools like Adobe Color or Color Hunt to find inspiration.\n3. Design the layout: Think about the user experience and how you want to organize your products, categories, and navigation.\n4. Develop the website: You can hire a developer or use a website builder like Wix or Squarespace to create the website.\n5",
+            "entity": "bahubali"
         }
     ],
     "entities": {
@@ -81,7 +81,8 @@
             "value": "bahubali"
         },
         "entity": [
-            "shri ram"
+            "shri ram",
+            "bahubali"
         ]
     }
 }

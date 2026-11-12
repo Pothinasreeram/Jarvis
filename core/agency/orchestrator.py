@@ -11,6 +11,7 @@ Coordinates the multi-agent software engineering lifecycle:
 import os
 import sys
 import json
+import re
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
@@ -25,6 +26,9 @@ from .db import (
     get_latest_standup_for_active_projects,
     get_artifacts_for_project,
     get_sprints_for_project,
+    find_available_port,
+    set_project_runtime,
+    get_project_runtime,
 )
 from .client_intake import initiate_client_project, detect_archetype
 from .agents import (
@@ -252,7 +256,9 @@ def execute_sprint_stage(project_identifier: Any, sprint_num: Optional[int] = No
     elif s_num == 4:
         if archetype == "web_application":
             run_bat_path = os.path.join(root, "run.bat")
-            launcher_code = DevOpsAgent.generate_launcher(name, archetype=archetype)
+            assigned_port = find_available_port(5000 + (p_id % 50))
+            set_project_runtime(p_id, port=assigned_port, pid=None)
+            launcher_code = DevOpsAgent.generate_launcher(name, archetype=archetype, port=assigned_port)
             with open(run_bat_path, "w", encoding="utf-8") as f:
                 f.write(launcher_code)
 
@@ -279,7 +285,9 @@ def execute_sprint_stage(project_identifier: Any, sprint_num: Optional[int] = No
 
             with open(app_path, "w", encoding="utf-8") as f:
                 f.write(app_code)
-            launcher_code = DevOpsAgent.generate_launcher(name, archetype=archetype)
+            assigned_port = find_available_port(5000 + (p_id % 50))
+            set_project_runtime(p_id, port=assigned_port, pid=None)
+            launcher_code = DevOpsAgent.generate_launcher(name, archetype=archetype, port=assigned_port)
             with open(run_bat_path, "w", encoding="utf-8") as f:
                 f.write(launcher_code)
 
@@ -566,7 +574,89 @@ def apply_change_request(project_identifier: Any, change_prompt: str) -> Dict[st
                     f.write(html_content)
                 updated_files.append("templates/index.html (Pricing section)")
 
-        elif "dark mode" in prompt_lower or "purple" in prompt_lower or "theme" in prompt_lower:
+        elif "faq" in prompt_lower or "question" in prompt_lower or "accordion" in prompt_lower:
+            if "faq" not in html_content.lower():
+                faq_section = '''
+        <!-- FAQ Section (Added via Change Request) -->
+        <section id="faq" class="section faq-section">
+            <div class="section-container">
+                <div class="section-header">
+                    <span class="section-tag">KNOWLEDGE BASE</span>
+                    <h2 class="section-title">Frequently Asked Questions</h2>
+                    <p class="section-subtitle">Clear answers to streamline your evaluation.</p>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <h3 class="card-title" style="color: var(--accent);">How quickly can deployment take place?</h3>
+                        <p class="card-desc">Production pipelines can be initialized and operational within sub-millisecond dispatch cycles.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3 class="card-title" style="color: var(--accent);">Is all data stored locally?</h3>
+                        <p class="card-desc">Yes, all leads, inquiries, and application telemetry are persisted in 100% offline local SQLite storage.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+'''
+                if '<section id="contact"' in html_content:
+                    html_content = html_content.replace('<section id="contact"', faq_section + '\n        <section id="contact"')
+                else:
+                    html_content = html_content.replace('</main>', faq_section + '\n    </main>')
+
+                if '<nav class="nav-links">' in html_content and 'href="#faq"' not in html_content:
+                    html_content = html_content.replace(
+                        '<a href="#about">About</a>',
+                        '<a href="#about">About</a>\n                <a href="#faq">FAQ</a>'
+                    )
+
+                with open(html_path, "w", encoding="utf-8") as f:
+                    f.write(html_content)
+                updated_files.append("templates/index.html (FAQ section)")
+
+        elif "team" in prompt_lower or "member" in prompt_lower or "leadership" in prompt_lower or "staff" in prompt_lower:
+            if "team" not in html_content.lower():
+                team_section = '''
+        <!-- Leadership & Team Section (Added via Change Request) -->
+        <section id="team" class="section team-section">
+            <div class="section-container">
+                <div class="section-header">
+                    <span class="section-tag">PERSONNEL</span>
+                    <h2 class="section-title">Leadership &amp; Engineering</h2>
+                    <p class="section-subtitle">The specialized personnel driving our technological frontier.</p>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-card" style="text-align: center;">
+                        <div style="width: 64px; height: 64px; border-radius: 50%; background: var(--surface-light); border: 2px solid var(--accent); margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: var(--accent);">TS</div>
+                        <h3 class="card-title">Tony Stark</h3>
+                        <p class="card-desc" style="color: var(--accent); margin-bottom: 0.5rem;">Chief Architect</p>
+                        <p class="card-desc">Pioneering autonomous intelligence and advanced energy systems.</p>
+                    </div>
+                    <div class="feature-card" style="text-align: center;">
+                        <div style="width: 64px; height: 64px; border-radius: 50%; background: var(--surface-light); border: 2px solid var(--accent); margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: var(--accent);">PP</div>
+                        <h3 class="card-title">Pepper Potts</h3>
+                        <p class="card-desc" style="color: var(--accent); margin-bottom: 0.5rem;">Chief Executive</p>
+                        <p class="card-desc">Directing global industrial operations and institutional partnerships.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+'''
+                if '<section id="contact"' in html_content:
+                    html_content = html_content.replace('<section id="contact"', team_section + '\n        <section id="contact"')
+                else:
+                    html_content = html_content.replace('</main>', team_section + '\n    </main>')
+
+                if '<nav class="nav-links">' in html_content and 'href="#team"' not in html_content:
+                    html_content = html_content.replace(
+                        '<a href="#about">About</a>',
+                        '<a href="#about">About</a>\n                <a href="#team">Team</a>'
+                    )
+
+                with open(html_path, "w", encoding="utf-8") as f:
+                    f.write(html_content)
+                updated_files.append("templates/index.html (Team section)")
+
+        elif any(c in prompt_lower for c in ["theme", "purple", "green", "emerald", "red", "crimson", "gold", "amber", "dark mode"]):
             if os.path.exists(css_path):
                 with open(css_path, "r", encoding="utf-8") as f:
                     css_content = f.read()
@@ -575,15 +665,70 @@ def apply_change_request(project_identifier: Any, change_prompt: str) -> Dict[st
                     css_content = css_content.replace("--accent: #00f0ff;", "--accent: #a855f7;")
                     css_content = css_content.replace("--accent-hover: #00c8d7;", "--accent-hover: #9333ea;")
                     css_content = css_content.replace("rgba(0, 240, 255, 0.25)", "rgba(168, 85, 247, 0.25)")
-                    with open(css_path, "w", encoding="utf-8") as f:
-                        f.write(css_content)
                     updated_files.append("static/css/style.css (Neon purple theme update)")
+                elif "green" in prompt_lower or "emerald" in prompt_lower:
+                    css_content = css_content.replace("--accent: #00f0ff;", "--accent: #10b981;")
+                    css_content = css_content.replace("--accent-hover: #00c8d7;", "--accent-hover: #059669;")
+                    css_content = css_content.replace("rgba(0, 240, 255, 0.25)", "rgba(16, 185, 129, 0.25)")
+                    updated_files.append("static/css/style.css (Emerald green theme update)")
+                elif "red" in prompt_lower or "crimson" in prompt_lower:
+                    css_content = css_content.replace("--accent: #00f0ff;", "--accent: #ef4444;")
+                    css_content = css_content.replace("--accent-hover: #00c8d7;", "--accent-hover: #dc2626;")
+                    css_content = css_content.replace("rgba(0, 240, 255, 0.25)", "rgba(239, 68, 68, 0.25)")
+                    updated_files.append("static/css/style.css (Crimson red theme update)")
                 elif "gold" in prompt_lower or "amber" in prompt_lower:
                     css_content = css_content.replace("--accent: #00f0ff;", "--accent: #f59e0b;")
                     css_content = css_content.replace("--accent-hover: #00c8d7;", "--accent-hover: #d97706;")
-                    with open(css_path, "w", encoding="utf-8") as f:
-                        f.write(css_content)
+                    css_content = css_content.replace("rgba(0, 240, 255, 0.25)", "rgba(245, 158, 11, 0.25)")
                     updated_files.append("static/css/style.css (Gold accent theme update)")
+
+                with open(css_path, "w", encoding="utf-8") as f:
+                    f.write(css_content)
+
+        else:
+            # Universal Dynamic Section Generator for arbitrary custom requests
+            m = re.search(r'(?:add|create|insert|include)\s+(?:a\s+|an\s+|the\s+)?([a-zA-Z0-9_\-\s]+?)(?:\s+section|\s+component|\s+block|\s+to|\s+in|$)', change_prompt, re.IGNORECASE)
+            raw_title = m.group(1).strip() if m else "Custom Features"
+            clean_title = re.sub(r'^(?:a|an|the)\s+', '', raw_title, flags=re.IGNORECASE).strip().title()
+            slug = re.sub(r'[^a-zA-Z0-9]', '', clean_title).lower() or "features"
+
+            if slug not in html_content.lower():
+                dyn_section = f'''
+        <!-- {clean_title} Section (Added via Change Request) -->
+        <section id="{slug}" class="section dynamic-section">
+            <div class="section-container">
+                <div class="section-header">
+                    <span class="section-tag">INNOVATION</span>
+                    <h2 class="section-title">{clean_title}</h2>
+                    <p class="section-subtitle">Tailored capabilities engineered for modern operational requirements.</p>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <h3 class="card-title">Precision Architecture</h3>
+                        <p class="card-desc">Engineered for robust performance and sub-millisecond execution dispatch.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3 class="card-title">Dynamic Scalability</h3>
+                        <p class="card-desc">Modular system design that expands seamlessly with workload demands.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+'''
+                if '<section id="contact"' in html_content:
+                    html_content = html_content.replace('<section id="contact"', dyn_section + '\n        <section id="contact"')
+                else:
+                    html_content = html_content.replace('</main>', dyn_section + '\n    </main>')
+
+                if '<nav class="nav-links">' in html_content and f'href="#{slug}"' not in html_content:
+                    html_content = html_content.replace(
+                        '<a href="#about">About</a>',
+                        f'<a href="#about">About</a>\n                <a href="#{slug}">{clean_title}</a>'
+                    )
+
+                with open(html_path, "w", encoding="utf-8") as f:
+                    f.write(html_content)
+                updated_files.append(f"templates/index.html ({clean_title} section)")
 
     if not updated_files:
         updated_files.append("templates/index.html (Component styling & layout updated)")

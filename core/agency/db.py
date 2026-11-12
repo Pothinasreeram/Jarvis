@@ -180,11 +180,12 @@ def get_all_projects() -> List[Dict[str, Any]]:
     """Retrieve all tracked projects."""
     with _get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT id, name, client_objective, current_sprint, total_sprints, status, root_dir, updated_at FROM projects ORDER BY updated_at DESC;")
+        cursor.execute("SELECT id, name, client_objective, current_sprint, total_sprints, status, root_dir, updated_at, metadata FROM projects ORDER BY updated_at DESC;")
         rows = cursor.fetchall()
         return [{
             "id": r[0], "name": r[1], "client_objective": r[2], "current_sprint": r[3],
-            "total_sprints": r[4], "status": r[5], "root_dir": r[6], "updated_at": r[7]
+            "total_sprints": r[4], "status": r[5], "root_dir": r[6], "updated_at": r[7],
+            "metadata": json.loads(r[8]) if len(r) > 8 and r[8] else {}
         } for r in rows]
 
 
@@ -328,6 +329,107 @@ def get_latest_standup_for_active_projects() -> List[Dict[str, Any]]:
             "blockers": r[6],
             "timestamp": r[7]
         } for r in rows]
+
+
+def update_project_metadata(project_id: int, new_metadata: Dict[str, Any]):
+    """Update metadata dictionary for a project."""
+    with _get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT metadata FROM projects WHERE id = ?;", (project_id,))
+        row = cursor.fetchone()
+        existing = json.loads(row[0]) if row and row[0] else {}
+        existing.update(new_metadata)
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute("UPDATE projects SET metadata = ?, updated_at = ? WHERE id = ?;", (json.dumps(existing), now, project_id))
+        conn.commit()
+
+
+def is_port_in_use(port: int) -> bool:
+    """Check if a local TCP port is already actively listening."""
+    import socket
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(0.2)
+            return s.connect_ex(("127.0.0.1", port)) == 0
+    except Exception:
+        return False
+
+
+def find_available_port(start_port: int = 5000, max_port: int = 5050) -> int:
+    """Find the next available TCP port starting from start_port."""
+    for port in range(start_port, max_port):
+        if not is_port_in_use(port):
+            return port
+    return start_port
+
+
+def set_project_runtime(project_id: int, port: Optional[int] = None, pid: Optional[int] = None):
+    """Save active runtime process ID and port to project metadata."""
+    runtime_info = {
+        "port": port,
+        "pid": pid,
+        "status": "running" if pid else "stopped",
+        "last_activity": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    update_project_metadata(project_id, {"runtime": runtime_info})
+
+
+def get_project_runtime(project_id: int) -> Dict[str, Any]:
+    """Retrieve runtime process ID and port for a project."""
+    proj = get_project_by_id(project_id)
+    if not proj:
+        return {}
+    return proj.get("metadata", {}).get("runtime", {})
+
+
+def stop_project_process(project_id_or_name: Any) -> Dict[str, Any]:
+    """Gracefully terminate the background server process for a project."""
+    import subprocess
+    import signal
+
+    proj = None
+    if isinstance(project_id_or_name, int) or (isinstance(project_id_or_name, str) and str(project_id_or_name).isdigit()):
+        proj = get_project_by_id(int(project_id_or_name))
+    else:
+        proj = get_project_by_name(str(project_id_or_name))
+
+    if not proj:
+        return {"success": False, "message": f"Project '{project_id_or_name}' not found."}
+
+    p_id = proj["id"]
+    runtime = get_project_runtime(p_id)
+    pid = runtime.get("pid")
+    port = runtime.get("port", 5000)
+
+    if not pid:
+        set_project_runtime(p_id, port=port, pid=None)
+        return {"success": True, "message": f"No active process recorded for {proj['name']}.", "already_stopped": True}
+
+    terminated = False
+    try:
+        if os.name == "nt":
+            subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=1.5)
+            terminated = True
+        else:
+            os.kill(pid, signal.SIGTERM)
+            terminated = True
+    except Exception:
+        try:
+            os.kill(pid, signal.SIGTERM)
+            terminated = True
+        except Exception:
+            terminated = False
+
+    set_project_runtime(p_id, port=port, pid=None)
+    p_display = proj["name"].replace("_", " ")
+    return {
+        "success": True,
+        "project_id": p_id,
+        "project_name": proj["name"],
+        "pid": pid,
+        "port": port,
+        "message": f"Server for **{p_display}** (PID {pid}, Port {port}) has been stopped."
+    }
 
 
 # Auto-initialize database on import
